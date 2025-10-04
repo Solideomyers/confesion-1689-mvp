@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter } from './types';
 import { confessionData } from './data/confesion';
 import Header from './components/Header';
@@ -14,6 +14,8 @@ export default function App() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [showGoToTop, setShowGoToTop] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
+  const touchStartX = useRef(0);
+
 
   const handleChapterChange = useCallback((index: number) => {
     if (index >= 0 && index < confessionData.length) {
@@ -91,6 +93,48 @@ export default function App() {
       clearTimeout(scrollTimeout);
     };
   }, [showGoToTop, currentChapterIndex]);
+
+  // Keyboard and Swipe Navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isSearchModalOpen || isScripturePanelOpen) return;
+
+      if (e.key === 'ArrowLeft') {
+        handleChapterChange(currentChapterIndex - 1);
+      } else if (e.key === 'ArrowRight') {
+        handleChapterChange(currentChapterIndex + 1);
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (isSearchModalOpen || isScripturePanelOpen) return;
+
+      const touchEndX = e.changedTouches[0].clientX;
+      const deltaX = touchEndX - touchStartX.current;
+      const minSwipeDistance = 50;
+
+      if (deltaX > minSwipeDistance) { // Swipe Right
+        handleChapterChange(currentChapterIndex - 1);
+      } else if (deltaX < -minSwipeDistance) { // Swipe Left
+        handleChapterChange(currentChapterIndex + 1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('touchstart', handleTouchStart);
+    window.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen]);
+
 
   const handleGoToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
