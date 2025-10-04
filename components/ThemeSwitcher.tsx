@@ -7,6 +7,7 @@ interface ThemeSwitcherProps {
 }
 
 const themes = [
+  { id: 'light-theme', name: 'Modo Claro' },
   { id: 'dark-matter', name: 'Materia Oscura' },
   { id: 'midnight-blue', name: 'Azul Medianoche' },
   { id: 'slate-gray', name: 'Gris Pizarra' },

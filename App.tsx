@@ -31,9 +31,14 @@ export default function App() {
   const touchStartX = useRef(0);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('confession_theme') || 'dark-matter';
-    setTheme(savedTheme);
-    document.documentElement.className = savedTheme;
+    let initialTheme = localStorage.getItem('confession_theme');
+    if (!initialTheme) {
+        initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark-matter'
+            : 'light-theme';
+    }
+    setTheme(initialTheme);
+    document.documentElement.className = initialTheme;
   }, []);
 
   const handleThemeChange = (newTheme: string) => {
