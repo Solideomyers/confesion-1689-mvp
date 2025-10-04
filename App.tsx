@@ -18,8 +18,16 @@ export default function App() {
   const [showGoToTop, setShowGoToTop] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
   const [isChapterNavOpen, setIsChapterNavOpen] = useState(false);
-  const [showFloatingNav, setShowFloatingNav] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const touchStartX = useRef(0);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
 
   const handleChapterChange = useCallback((index: number) => {
@@ -82,10 +90,7 @@ export default function App() {
 
     const handleScroll = () => {
       const scrollY = window.scrollY;
-
-      // Floating Nav visibility
-      setShowFloatingNav(scrollY > 0);
-
+      
       // Go to top button visibility
       if (!isReaderMode) {
         setShowGoToTop(scrollY > 200);
@@ -160,6 +165,9 @@ export default function App() {
   };
 
   const currentChapterData = confessionData[currentChapterIndex];
+  
+  const isFloatingNavVisible = isMobile || isReaderMode;
+  const isHeaderVisible = !isFloatingNavVisible;
 
   return (
     <div className="flex flex-col min-h-screen font-sans">
@@ -167,27 +175,15 @@ export default function App() {
         onSearchClick={handleOpenSearch}
         onToggleReaderMode={handleToggleReaderMode}
         onOpenChapterNav={handleOpenChapterNav}
-        isHeaderVisible={!showFloatingNav && !isReaderMode}
+        isHeaderVisible={isHeaderVisible}
       />
-      
-      {isReaderMode && (
-         <button
-          onClick={handleToggleReaderMode}
-          className="fixed top-6 right-6 z-20 p-2 bg-card/80 backdrop-blur-sm rounded-full text-primary border border-border shadow-lg hover:bg-accent transition-all duration-300 ease-in-out"
-          aria-label="Salir del modo lectura"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-        </button>
-      )}
 
-      <main className={`flex-grow pb-16 px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-32'}`}>
+      <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-32'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
         <ConfessionViewer
           chapter={currentChapterData}
           onShowProof={handleShowProof}
         />
-        {!isReaderMode && (
+        {isHeaderVisible && (
           <FooterNav 
             chapters={confessionData}
             currentChapterIndex={currentChapterIndex}
@@ -196,7 +192,7 @@ export default function App() {
         )}
       </main>
 
-      <div className={`transition-opacity duration-300 ease-in-out ${showFloatingNav && !isReaderMode ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`transition-opacity duration-300 ease-in-out ${isFloatingNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FloatingNav
           onPrev={() => handleChapterChange(currentChapterIndex - 1)}
           onNext={() => handleChapterChange(currentChapterIndex + 1)}
