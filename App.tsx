@@ -8,6 +8,7 @@ import ScripturePanel from './components/ScripturePanel';
 import SearchModal from './components/SearchModal';
 import FooterNav from './components/FooterNav';
 import ChapterNavigationModal from './components/ChapterNavigationModal';
+import FloatingNav from './components/FloatingNav';
 
 export default function App() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -17,6 +18,7 @@ export default function App() {
   const [showGoToTop, setShowGoToTop] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
   const [isChapterNavOpen, setIsChapterNavOpen] = useState(false);
+  const [showFloatingNav, setShowFloatingNav] = useState(false);
   const touchStartX = useRef(0);
 
 
@@ -79,30 +81,36 @@ export default function App() {
     let scrollTimeout: number;
 
     const handleScroll = () => {
+      const scrollY = window.scrollY;
+
+      // Floating Nav visibility
+      setShowFloatingNav(scrollY > 50);
+
       // Go to top button visibility
-      if (!showGoToTop && window.scrollY > 200) {
-        setShowGoToTop(true);
-      } else if (showGoToTop && window.scrollY <= 200) {
+      if (!isReaderMode) {
+        setShowGoToTop(scrollY > 200);
+      } else {
         setShowGoToTop(false);
       }
 
       // Save scroll position
       clearTimeout(scrollTimeout);
       scrollTimeout = window.setTimeout(() => {
-        if (window.scrollY > 50) {
-           localStorage.setItem(`scroll_ch_${currentChapterIndex}`, window.scrollY.toString());
+        if (scrollY > 50) {
+           localStorage.setItem(`scroll_ch_${currentChapterIndex}`, scrollY.toString());
         } else {
            localStorage.removeItem(`scroll_ch_${currentChapterIndex}`);
         }
-      }, 250); // Throttle saving scroll position
+      }, 250);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(scrollTimeout);
     };
-  }, [showGoToTop, currentChapterIndex]);
+  }, [currentChapterIndex, isReaderMode]);
+
 
   // Keyboard and Swipe Navigation
   useEffect(() => {
@@ -156,13 +164,10 @@ export default function App() {
   return (
     <div className="flex flex-col min-h-screen font-sans">
       <Header
-        chapters={confessionData}
-        currentChapterIndex={currentChapterIndex}
-        onChapterChange={handleChapterChange}
         onSearchClick={handleOpenSearch}
         onToggleReaderMode={handleToggleReaderMode}
-        isReaderMode={isReaderMode}
         onOpenChapterNav={handleOpenChapterNav}
+        isHeaderVisible={!showFloatingNav && !isReaderMode}
       />
       
       {isReaderMode && (
@@ -190,6 +195,18 @@ export default function App() {
           />
         )}
       </main>
+
+      <div className={`transition-all duration-300 ease-in-out ${showFloatingNav && !isReaderMode ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16 pointer-events-none'}`}>
+        <FloatingNav
+          onPrev={() => handleChapterChange(currentChapterIndex - 1)}
+          onNext={() => handleChapterChange(currentChapterIndex + 1)}
+          isPrevDisabled={currentChapterIndex === 0}
+          isNextDisabled={currentChapterIndex === confessionData.length - 1}
+          onOpenChapterNav={handleOpenChapterNav}
+          onToggleReaderMode={handleToggleReaderMode}
+        />
+      </div>
+
       <ScripturePanel
         isOpen={isScripturePanelOpen}
         proof={selectedProof}
@@ -210,7 +227,7 @@ export default function App() {
       {!isReaderMode && showGoToTop && (
         <button
           onClick={handleGoToTop}
-          className="fixed bottom-8 right-8 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out z-20"
+          className="fixed bottom-24 sm:bottom-8 right-8 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out z-20"
           aria-label="Volver arriba"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
