@@ -15,7 +15,6 @@ const ParagraphRenderer: React.FC<{
   chapterNumber: number;
 }> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
   const paragraphRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -44,18 +43,6 @@ const ParagraphRenderer: React.FC<{
     };
   }, []);
 
-  const handleCopy = async () => {
-    const cleanText = paragraph.text.replace(/{[a-z]}/g, '');
-    const textToCopy = `${paragraph.paragraph}. ${cleanText}`;
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
-
   const parts = paragraph.text.split(/({[a-z]})/);
 
   const findProof = (refChar: string) => {
@@ -71,21 +58,6 @@ const ParagraphRenderer: React.FC<{
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
-      <button
-        onClick={handleCopy}
-        className="absolute top-0 right-0 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-        aria-label="Copiar párrafo"
-      >
-        {isCopied ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        )}
-      </button>
       <p className="text-lg leading-relaxed font-serif text-muted-foreground">
         <span className="font-bold text-foreground pr-2">{paragraph.paragraph}.</span>
         {parts.map((part, index) => {
@@ -124,7 +96,64 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     left: number;
   } | null>(null);
   const [copiedVerseIndex, setCopiedVerseIndex] = useState<number | null>(null);
+   const [selectionToolbar, setSelectionToolbar] = useState<{
+    visible: boolean;
+    top: number;
+    left: number;
+    isCopied: boolean;
+  }>({ visible: false, top: 0, left: 0, isCopied: false });
+
   const hideTooltipTimer = useRef<number | null>(null);
+  const viewerRef = useRef<HTMLElement | null>(null);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
+
+
+  useEffect(() => {
+    const handleMouseUp = () => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim().length > 0) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        setSelectionToolbar({
+          visible: true,
+          top: rect.top + window.scrollY - 50, // Position above selection
+          left: rect.left + window.scrollX + rect.width / 2,
+          isCopied: false,
+        });
+      }
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      // Hide toolbar if clicking outside of it
+      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
+        setSelectionToolbar(prev => ({ ...prev, visible: false, isCopied: false }));
+      }
+    };
+    
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, []);
+  
+  const handleCopySelection = async () => {
+    const selection = window.getSelection();
+    if (selection) {
+      try {
+        await navigator.clipboard.writeText(selection.toString());
+        setSelectionToolbar(prev => ({ ...prev, isCopied: true }));
+        setTimeout(() => {
+           setSelectionToolbar(prev => ({...prev, isCopied: false }));
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy text: ', err);
+      }
+    }
+  };
 
 
   const handleMouseEnterProof = (proof: ScriptureProof, e: React.MouseEvent<HTMLButtonElement>) => {
@@ -183,14 +212,58 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       const textToCopy = `"${item.text}" (${item.ref})`;
       await navigator.clipboard.writeText(textToCopy);
       setCopiedVerseIndex(index);
-      setTimeout(() => setCopiedVerseIndex(null), 2000);
+      setTimeout(() => {
+        setCopiedVerseIndex(prev => prev === index ? null : prev);
+      }, 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
   };
   
+  const getCopyButtonClassName = (index: number) => {
+    const baseClasses = "absolute top-1/2 right-0 -translate-y-1/2 p-1 rounded-md text-muted-foreground focus:opacity-100 transition-opacity";
+    if (copiedVerseIndex === index) {
+      return `${baseClasses} opacity-100`;
+    }
+    return `${baseClasses} opacity-0 group-hover:opacity-100`;
+  };
+
   return (
-    <article className="max-w-3xl mx-auto">
+    <article ref={viewerRef} className="max-w-3xl mx-auto relative">
+       {selectionToolbar.visible && (
+        <div
+          ref={toolbarRef}
+          className="fixed z-50 bg-card border border-border rounded-lg shadow-lg flex items-center transition-opacity"
+          style={{
+            top: `${selectionToolbar.top}px`,
+            left: `${selectionToolbar.left}px`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <button
+            onClick={handleCopySelection}
+            disabled={selectionToolbar.isCopied}
+            className="px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors rounded-lg flex items-center gap-2"
+          >
+            {selectionToolbar.isCopied ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                ¡Copiado!
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copiar
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {tooltip && tooltip.visible && (
         <div
           className="fixed z-50 p-3 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-sm text-sm font-sans max-h-[60vh] overflow-y-auto"
@@ -211,7 +284,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
                 {item.text && (
                   <button 
                     onClick={() => handleCopyProof(item, i)}
-                    className="absolute top-1/2 right-0 -translate-y-1/2 p-1 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    className={getCopyButtonClassName(i)}
                     aria-label="Copiar texto del versículo"
                   >
                   {copiedVerseIndex === i ? (
