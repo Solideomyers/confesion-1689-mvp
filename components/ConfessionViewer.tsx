@@ -1,12 +1,12 @@
 
 import React, { memo, useState, useRef, useEffect } from 'react';
-import type { Chapter, Paragraph, ScriptureProof } from '../types';
+import type { Chapter, Paragraph, ScriptureProof, Bookmark } from '../types';
 import ParagraphNotes from './ParagraphNotes';
 
 interface ConfessionViewerProps {
   chapter: Chapter;
   onShowProof: (proof: ScriptureProof) => void;
-  bookmarks: string[];
+  bookmarks: Bookmark[];
   onToggleBookmark: (paragraphId: string) => void;
 }
 
@@ -17,7 +17,7 @@ const ParagraphRenderer: React.FC<{
   onMouseLeaveProof: () => void;
   chapterNumber: number;
   chapterTitle: string;
-  bookmarks: string[];
+  bookmarks: Bookmark[];
   onToggleBookmark: (paragraphId: string) => void;
 }> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, onToggleBookmark }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -56,7 +56,7 @@ const ParagraphRenderer: React.FC<{
   };
 
   const paragraphId = `confession-ch${chapterNumber}-p${paragraph.paragraph}`;
-  const isBookmarked = bookmarks.includes(paragraphId);
+  const isBookmarked = bookmarks.some(b => b.id === paragraphId);
 
   return (
     <div

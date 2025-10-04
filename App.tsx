@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
@@ -65,10 +66,10 @@ export default function App() {
 
   const handleToggleBookmark = useCallback((paragraphId: string) => {
     setBookmarks(prevBookmarks => {
-      const isBookmarked = prevBookmarks.includes(paragraphId);
+      const isBookmarked = prevBookmarks.some(b => b.id === paragraphId);
       const newBookmarks = isBookmarked
-        ? prevBookmarks.filter(id => id !== paragraphId)
-        : [...prevBookmarks, paragraphId];
+        ? prevBookmarks.filter(b => b.id !== paragraphId)
+        : [...prevBookmarks, { id: paragraphId }];
       
       localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
       return newBookmarks;
@@ -77,9 +78,19 @@ export default function App() {
   
   const handleDeleteBookmark = useCallback((bookmarkId: string) => {
     setBookmarks(prevBookmarks => {
-        const newBookmarks = prevBookmarks.filter(id => id !== bookmarkId);
+        const newBookmarks = prevBookmarks.filter(b => b.id !== bookmarkId);
         localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
         return newBookmarks;
+    });
+  }, []);
+
+  const handleUpdateBookmark = useCallback((bookmarkId: string, note: string) => {
+    setBookmarks(prevBookmarks => {
+      const newBookmarks = prevBookmarks.map(b => 
+        b.id === bookmarkId ? { ...b, note } : b
+      );
+      localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
+      return newBookmarks;
     });
   }, []);
 
@@ -154,7 +165,7 @@ export default function App() {
 
     if (topParagraph) {
       const topParagraphId = topParagraph.id;
-      if (bookmarks.includes(topParagraphId)) {
+      if (bookmarks.some(b => b.id === topParagraphId)) {
         setActiveBookmarkId(topParagraphId);
       } else {
         setActiveBookmarkId(null);
@@ -171,7 +182,7 @@ export default function App() {
     setActiveBookmarkId(null);
   }, []);
   
-  const handleNavigateToBookmark = (bookmarkId: Bookmark) => {
+  const handleNavigateToBookmark = (bookmarkId: string) => {
     const parts = bookmarkId.match(/ch(\d+)-p(\d+)/);
     if (parts) {
       const chapterNumber = parseInt(parts[1], 10);
@@ -333,6 +344,7 @@ export default function App() {
         confessionData={confessionData}
         onNavigate={handleNavigateToBookmark}
         onDelete={handleDeleteBookmark}
+        onUpdate={handleUpdateBookmark}
         activeBookmarkId={activeBookmarkId}
       />
       {!isReaderMode && showGoToTop && (

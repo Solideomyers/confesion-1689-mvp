@@ -17,4 +17,7 @@ export interface Chapter {
   paragraphs: Paragraph[];
 }
 
-export type Bookmark = string;
+export interface Bookmark {
+  id: string; // e.g., "confession-ch1-p2"
+  note?: string;
+}
