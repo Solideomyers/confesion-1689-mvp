@@ -159,7 +159,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       const { chapterNumber, chapterTitle, paragraphNumber } = selectionToolbar;
       const isPreface = chapterNumber === '0';
 
-      let reference = `(2CFL-1689`;
+      let reference = `(_2CFL-1689_`;
       if (isPreface) {
         reference += `, ${chapterTitle}`;
       } else {
@@ -167,7 +167,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       }
        reference += `, Párrafo ${paragraphNumber})`;
 
-      const textToCopy = `"${selectedText}"\n\n${reference}`;
+      const textToCopy = `«${selectedText}»\n\n${reference}`;
 
       try {
         await navigator.clipboard.writeText(textToCopy);
