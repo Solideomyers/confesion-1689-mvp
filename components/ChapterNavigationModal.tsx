@@ -57,7 +57,7 @@ const ChapterNavigationModal: React.FC<ChapterNavigationModalProps> = ({ isOpen,
                 <p className={`text-sm font-mono ${currentChapterIndex === index ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {chapter.chapter === 0 ? 'Prefacio' : `Capítulo ${chapter.chapter}`}
                 </p>
-                <p className={`font-bold text-lg font-serif mt-2 ${currentChapterIndex === index ? 'text-primary-foreground' : 'text-foreground'}`}>
+                <p className={`font-bold text-lg font-serif mt-2 break-words ${currentChapterIndex === index ? 'text-primary-foreground' : 'text-foreground'}`}>
                   {chapter.title}
                 </p>
               </button>

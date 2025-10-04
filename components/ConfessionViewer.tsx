@@ -15,6 +15,7 @@ const ParagraphRenderer: React.FC<{
   chapterNumber: number;
 }> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const paragraphRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ const ParagraphRenderer: React.FC<{
       },
       {
         rootMargin: '0px',
-        threshold: 0.05, // Animar cuando el 5% del párrafo sea visible
+        threshold: 0.05,
       }
     );
 
@@ -43,6 +44,18 @@ const ParagraphRenderer: React.FC<{
     };
   }, []);
 
+  const handleCopy = async () => {
+    const cleanText = paragraph.text.replace(/{[a-z]}/g, '');
+    const textToCopy = `${paragraph.paragraph}. ${cleanText}`;
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
   const parts = paragraph.text.split(/({[a-z]})/);
 
   const findProof = (refChar: string) => {
@@ -54,10 +67,25 @@ const ParagraphRenderer: React.FC<{
   return (
     <div
       ref={paragraphRef}
-      className={`mb-6 border-b border-border/50 pb-6 last:border-b-0 last:pb-0 transition-all duration-700 ease-out ${
+      className={`relative group mb-6 border-b border-border/50 pb-6 last:border-b-0 last:pb-0 transition-all duration-700 ease-out ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
+      <button
+        onClick={handleCopy}
+        className="absolute top-0 right-0 p-1.5 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+        aria-label="Copiar párrafo"
+      >
+        {isCopied ? (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        )}
+      </button>
       <p className="text-lg leading-relaxed font-serif text-muted-foreground">
         <span className="font-bold text-foreground pr-2">{paragraph.paragraph}.</span>
         {parts.map((part, index) => {
