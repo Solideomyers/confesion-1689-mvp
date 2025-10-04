@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
@@ -378,7 +379,10 @@ export default function App() {
             onClose={handleCloseChapterNav}
             chapters={confessionData}
             currentChapterIndex={currentChapterIndex}
-            onSelectChapter={(index) => handleNavigateToReader(index)}
+            onSelectChapter={(index) => {
+              handleNavigateToReader(index);
+              handleCloseChapterNav();
+            }}
           />
           <BookmarkList
             isOpen={isBookmarkListOpen}
