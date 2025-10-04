@@ -1,5 +1,4 @@
 
-
 import React, { memo, useState, useRef, useEffect } from 'react';
 import type { Chapter, Paragraph, ScriptureProof, Bookmark } from '../types';
 
@@ -153,27 +152,40 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
   const viewerRef = useRef<HTMLElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
 
-
   useEffect(() => {
     const handleMouseUp = () => {
-      const selection = window.getSelection();
-      if (selection && selection.toString().trim().length > 0 && selection.anchorNode) {
-        const targetParagraph = (selection.anchorNode.parentElement as HTMLElement)?.closest('[data-paragraph-number]');
-        if (targetParagraph) {
-            const rect = selection.getRangeAt(0).getBoundingClientRect();
-            const { chapterNumber, chapterTitle, paragraphNumber } = (targetParagraph as HTMLElement).dataset;
+        const selection = window.getSelection();
+        if (selection && selection.toString().trim().length > 0 && selection.anchorNode) {
+            const targetParagraph = (selection.anchorNode.parentElement as HTMLElement)?.closest('[data-paragraph-number]');
             
-            setSelectionToolbar({
-              visible: true,
-              top: rect.top + window.scrollY - 50,
-              left: rect.left + window.scrollX + rect.width / 2,
-              isCopied: false,
-              chapterNumber,
-              chapterTitle,
-              paragraphNumber
-            });
+            if (targetParagraph) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                
+                const TOOLBAR_HEIGHT = 44;
+                const GAP = 8;
+                
+                let top = rect.top + window.scrollY - TOOLBAR_HEIGHT - GAP;
+                
+                if (rect.top < (TOOLBAR_HEIGHT + GAP)) {
+                    top = rect.bottom + window.scrollY + GAP;
+                }
+
+                const left = rect.left + window.scrollX + (rect.width / 2);
+                
+                const { chapterNumber, chapterTitle, paragraphNumber } = (targetParagraph as HTMLElement).dataset;
+                
+                setSelectionToolbar({
+                    visible: true,
+                    top: top,
+                    left: left,
+                    isCopied: false,
+                    chapterNumber,
+                    chapterTitle,
+                    paragraphNumber
+                });
+            }
         }
-      }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -237,7 +249,6 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       }
     }
   };
-
 
   const handleMouseEnterProof = (proof: ScriptureProof, e: React.MouseEvent<HTMLButtonElement>) => {
     if (hideTooltipTimer.current) {
