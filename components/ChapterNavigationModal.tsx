@@ -15,21 +15,6 @@ const ChapterNavigationModal: React.FC<ChapterNavigationModalProps> = ({ isOpen,
     return null;
   }
 
-  const getGridSpan = (index: number) => {
-    if (index === 0) { // Preface
-      return 'lg:col-span-6';
-    }
-    const patternIndex = (index - 1) % 5;
-    switch (patternIndex) {
-      case 0: return 'lg:col-span-4';
-      case 1: return 'lg:col-span-2';
-      case 2: return 'lg:col-span-2';
-      case 3: return 'lg:col-span-2';
-      case 4: return 'lg:col-span-2';
-      default: return 'lg:col-span-2';
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 bg-background/90 z-40 flex justify-center items-center p-4"
@@ -53,21 +38,26 @@ const ChapterNavigationModal: React.FC<ChapterNavigationModalProps> = ({ isOpen,
         </header>
 
         <div className="flex-grow p-4 sm:p-6 overflow-y-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="flex flex-wrap gap-4 items-start">
             {chapters.map((chapter, index) => (
               <button
                 key={index}
                 onClick={() => onSelectChapter(index)}
-                className={`w-full text-left p-6 rounded-lg border flex flex-col justify-center items-start transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:-translate-y-1 ${getGridSpan(index)} ${
-                  currentChapterIndex === index
-                    ? 'bg-primary border-primary text-primary-foreground shadow-md'
-                    : 'bg-background border-border hover:bg-accent hover:border-accent-foreground'
-                }`}
+                className={`
+                  text-left p-6 rounded-lg border flex flex-col justify-center 
+                  transition-all duration-300 ease-in-out transform hover:scale-[1.02] hover:-translate-y-1
+                  ${index === 0 ? 'w-full' : 'w-auto'}
+                  ${
+                    currentChapterIndex === index
+                      ? 'bg-primary border-primary text-primary-foreground shadow-md'
+                      : 'bg-background border-border hover:bg-accent hover:border-accent-foreground'
+                  }
+                `}
               >
                 <p className={`text-sm font-mono ${currentChapterIndex === index ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {chapter.chapter === 0 ? 'Prefacio' : `Capítulo ${chapter.chapter}`}
                 </p>
-                <p className={`font-bold text-lg font-serif mt-2 ${currentChapterIndex === index ? 'text-primary-foreground' : 'text-foreground'}`}>
+                <p className={`font-bold text-lg font-serif mt-2 whitespace-nowrap ${currentChapterIndex === index ? 'text-primary-foreground' : 'text-foreground'}`}>
                   {chapter.title}
                 </p>
               </button>
