@@ -158,22 +158,40 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       const selectedText = selection.toString();
       const { chapterNumber, chapterTitle, paragraphNumber } = selectionToolbar;
       const isPreface = chapterNumber === '0';
-
-      let reference = `(_2CFL-1689_`;
+  
+      // Plain text version with markdown for italics
+      let plainReference = `(*2CFL-1689*`;
       if (isPreface) {
-        reference += `, ${chapterTitle}`;
+        plainReference += `, ${chapterTitle}`;
       } else {
-        reference += `, Cap. ${chapterNumber}: ${chapterTitle}`;
+        plainReference += `, Cap. ${chapterNumber}: ${chapterTitle}`;
       }
-       reference += `, Párrafo ${paragraphNumber})`;
-
-      const textToCopy = `«${selectedText}»\n\n${reference}`;
-
+      plainReference += `, Párrafo ${paragraphNumber})`;
+      const textToCopy = `«${selectedText}»\n\n${plainReference}`;
+  
+      // HTML version for rich text editors
+      let htmlReference = `(<i>2CFL-1689</i>`;
+      if (isPreface) {
+        htmlReference += `, ${chapterTitle}`;
+      } else {
+        htmlReference += `, Cap. ${chapterNumber}: ${chapterTitle}`;
+      }
+      htmlReference += `, Párrafo ${paragraphNumber})`;
+      const htmlToCopy = `<p>«${selectedText}»</p><p>${htmlReference}</p>`;
+  
       try {
-        await navigator.clipboard.writeText(textToCopy);
+        // Use the Clipboard API to write both plain text and HTML
+        const blobHtml = new Blob([htmlToCopy], { type: 'text/html' });
+        const blobText = new Blob([textToCopy], { type: 'text/plain' });
+        const clipboardItem = new ClipboardItem({
+          'text/html': blobHtml,
+          'text/plain': blobText,
+        });
+        await navigator.clipboard.write([clipboardItem]);
+  
         setSelectionToolbar(prev => ({ ...prev, isCopied: true }));
         setTimeout(() => {
-           setSelectionToolbar(prev => ({...prev, isCopied: false, visible: false }));
+          setSelectionToolbar(prev => ({ ...prev, isCopied: false, visible: false }));
         }, 2000);
       } catch (err) {
         console.error('Failed to copy text: ', err);
