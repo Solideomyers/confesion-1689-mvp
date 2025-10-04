@@ -165,7 +165,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     <article className="max-w-3xl mx-auto">
       {tooltip && tooltip.visible && (
         <div
-          className="fixed z-50 p-3 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-sm text-sm font-sans"
+          className="fixed z-50 p-3 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-sm text-sm font-sans max-h-[60vh] overflow-y-auto"
           style={{ 
             top: `${tooltip.top}px`, 
             left: `${tooltip.left}px`,
