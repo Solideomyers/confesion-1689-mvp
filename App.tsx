@@ -84,7 +84,7 @@ export default function App() {
       const scrollY = window.scrollY;
 
       // Floating Nav visibility
-      setShowFloatingNav(scrollY > 50);
+      setShowFloatingNav(scrollY > 0);
 
       // Go to top button visibility
       if (!isReaderMode) {
@@ -196,7 +196,7 @@ export default function App() {
         )}
       </main>
 
-      <div className={`transition-all duration-300 ease-in-out ${showFloatingNav && !isReaderMode ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16 pointer-events-none'}`}>
+      <div className={`transition-opacity duration-300 ease-in-out ${showFloatingNav && !isReaderMode ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <FloatingNav
           onPrev={() => handleChapterChange(currentChapterIndex - 1)}
           onNext={() => handleChapterChange(currentChapterIndex + 1)}

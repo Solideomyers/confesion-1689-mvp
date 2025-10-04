@@ -10,7 +10,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onSearchClick, onToggleReaderMode, onOpenChapterNav, isHeaderVisible }) => {
   return (
-    <header className={`fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border transition-transform duration-300 ease-in-out ${isHeaderVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+    <header className={`fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-300 ease-in-out ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <div className="max-w-5xl mx-auto p-4 flex items-center justify-between">
         <h1 className="text-xl sm:text-2xl font-bold text-foreground font-serif text-center sm:text-left">
           Confesión de 1689
