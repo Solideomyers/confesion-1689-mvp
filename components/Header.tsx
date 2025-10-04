@@ -1,8 +1,9 @@
+
 import React from 'react';
 import ThemeSwitcher from './ThemeSwitcher';
 
 interface HeaderProps {
-  view: 'home' | 'reader';
+  view: 'home' | 'reader' | 'dashboard';
   onSearchClick: () => void;
   onToggleReaderMode: () => void;
   onOpenChapterNav: () => void;
@@ -11,6 +12,7 @@ interface HeaderProps {
   onGoHome: () => void;
   onThemeChange: (theme: string) => void;
   currentTheme: string;
+  onGoToDashboard: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -22,10 +24,14 @@ const Header: React.FC<HeaderProps> = ({
   isHeaderVisible, 
   onGoHome,
   onThemeChange,
-  currentTheme
+  currentTheme,
+  onGoToDashboard
 }) => {
+  const isReaderView = view === 'reader';
+  const isFloatingNavVisible = isReaderView && (window.innerWidth < 768 || document.documentElement.classList.contains('reader-mode-active')); // A simplified check
+
   return (
-    <header className={`fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-300 ease-in-out ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    <header className={`fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-300 ease-in-out ${isReaderView && isFloatingNavVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <div className="max-w-7xl mx-auto p-4 flex items-center justify-between">
         <button onClick={onGoHome} className="text-left" disabled={view === 'home'}>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground font-serif text-center sm:text-left break-words">
@@ -33,7 +39,7 @@ const Header: React.FC<HeaderProps> = ({
             </h1>
         </button>
         <div className="flex items-center space-x-2">
-          {view === 'reader' ? (
+          {isReaderView ? (
             <>
               <button
                   onClick={onOpenChapterNav}
@@ -83,6 +89,16 @@ const Header: React.FC<HeaderProps> = ({
                </button>
             </>
           )}
+           <button
+            onClick={onGoToDashboard}
+            className="p-2 bg-card border border-border rounded-lg hover:bg-accent transition-colors"
+            aria-label="Abrir panel de control"
+            disabled={view === 'dashboard'}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
           <ThemeSwitcher onThemeChange={onThemeChange} currentTheme={currentTheme} direction="down" />
         </div>
       </div>
