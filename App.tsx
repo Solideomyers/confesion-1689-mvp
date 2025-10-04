@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
@@ -12,6 +11,7 @@ import FooterNav from './components/FooterNav';
 import ChapterNavigationModal from './components/ChapterNavigationModal';
 import FloatingNav from './components/FloatingNav';
 import BookmarkList from './components/BookmarkList';
+import NoteEditorModal from './components/NoteEditorModal';
 
 export default function App() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -26,6 +26,7 @@ export default function App() {
   const [isBookmarkListOpen, setIsBookmarkListOpen] = useState(false);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const touchStartX = useRef(0);
 
   useEffect(() => {
@@ -92,6 +93,17 @@ export default function App() {
       localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
       return newBookmarks;
     });
+  }, []);
+  
+  const handleOpenNoteEditor = useCallback((bookmarkId: string) => {
+    const bookmarkToEdit = bookmarks.find(b => b.id === bookmarkId);
+    if (bookmarkToEdit) {
+      setEditingBookmark(bookmarkToEdit);
+    }
+  }, [bookmarks]);
+
+  const handleCloseNoteEditor = useCallback(() => {
+    setEditingBookmark(null);
   }, []);
 
 
@@ -298,6 +310,7 @@ export default function App() {
           onShowProof={handleShowProof}
           bookmarks={bookmarks}
           onToggleBookmark={handleToggleBookmark}
+          onOpenNoteEditor={handleOpenNoteEditor}
         />
         {isHeaderVisible && (
           <FooterNav 
@@ -346,6 +359,13 @@ export default function App() {
         onDelete={handleDeleteBookmark}
         onUpdate={handleUpdateBookmark}
         activeBookmarkId={activeBookmarkId}
+      />
+      <NoteEditorModal
+        isOpen={!!editingBookmark}
+        onClose={handleCloseNoteEditor}
+        onSave={handleUpdateBookmark}
+        bookmark={editingBookmark}
+        confessionData={confessionData}
       />
       {!isReaderMode && showGoToTop && (
         <button

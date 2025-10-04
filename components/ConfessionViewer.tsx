@@ -1,13 +1,14 @@
 
+
 import React, { memo, useState, useRef, useEffect } from 'react';
 import type { Chapter, Paragraph, ScriptureProof, Bookmark } from '../types';
-import ParagraphNotes from './ParagraphNotes';
 
 interface ConfessionViewerProps {
   chapter: Chapter;
   onShowProof: (proof: ScriptureProof) => void;
   bookmarks: Bookmark[];
   onToggleBookmark: (paragraphId: string) => void;
+  onOpenNoteEditor: (paragraphId: string) => void;
 }
 
 const ParagraphRenderer: React.FC<{
@@ -19,7 +20,8 @@ const ParagraphRenderer: React.FC<{
   chapterTitle: string;
   bookmarks: Bookmark[];
   onToggleBookmark: (paragraphId: string) => void;
-}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, onToggleBookmark }) => {
+  onOpenNoteEditor: (paragraphId: string) => void;
+}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, onToggleBookmark, onOpenNoteEditor }) => {
   const [isVisible, setIsVisible] = useState(false);
   const paragraphRef = useRef<HTMLDivElement | null>(null);
 
@@ -69,21 +71,35 @@ const ParagraphRenderer: React.FC<{
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
-      <button
-        onClick={() => onToggleBookmark(paragraphId)}
-        className="absolute top-0 right-0 p-2 text-muted-foreground hover:text-primary transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
-        aria-label={isBookmarked ? 'Quitar marcador' : 'Añadir marcador'}
-      >
-        {isBookmarked ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
+       <div className="absolute top-0 right-0 flex items-center space-x-1 p-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
+        {isBookmarked && (
+          <button
+            onClick={() => onOpenNoteEditor(paragraphId)}
+            className="text-muted-foreground hover:text-primary transition-colors p-1"
+            aria-label="Editar nota"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+              <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
+            </svg>
+          </button>
         )}
-      </button>
+        <button
+          onClick={() => onToggleBookmark(paragraphId)}
+          className="p-1 text-muted-foreground hover:text-primary transition-colors"
+          aria-label={isBookmarked ? 'Quitar marcador' : 'Añadir marcador'}
+        >
+          {isBookmarked ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-3.13L5 18V4z" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          )}
+        </button>
+      </div>
 
       <p className="text-lg leading-relaxed font-serif text-muted-foreground pr-8">
         <span className="font-bold text-foreground pr-2">{paragraph.paragraph}.</span>
@@ -110,12 +126,11 @@ const ParagraphRenderer: React.FC<{
           return <span key={index}>{part}</span>;
         })}
       </p>
-      <ParagraphNotes paragraphId={paragraphId} />
     </div>
   );
 };
 
-const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProof, bookmarks, onToggleBookmark }) => {
+const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProof, bookmarks, onToggleBookmark, onOpenNoteEditor }) => {
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     content: Array<{ ref: string; text?: string; }>;
@@ -425,6 +440,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
             chapterTitle={chapter.title}
             bookmarks={bookmarks}
             onToggleBookmark={onToggleBookmark}
+            onOpenNoteEditor={onOpenNoteEditor}
           />
         ))}
       </div>
