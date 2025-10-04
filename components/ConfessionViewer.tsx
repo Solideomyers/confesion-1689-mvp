@@ -111,11 +111,27 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       text: proof.fullText ? proof.fullText[index] : undefined,
     }));
 
+    const viewportWidth = window.innerWidth;
+    const tooltipMaxWidth = 352; // Corresponds to max-w-sm (22rem) with some buffer
+    const PADDING = 16; // 1rem padding from viewport edges
+
+    let left = rect.left + rect.width / 2;
+
+    // Check for left overflow
+    if (left - tooltipMaxWidth / 2 < PADDING) {
+      left = tooltipMaxWidth / 2 + PADDING;
+    }
+
+    // Check for right overflow
+    if (left + tooltipMaxWidth / 2 > viewportWidth - PADDING) {
+      left = viewportWidth - tooltipMaxWidth / 2 - PADDING;
+    }
+
     setTooltip({
       visible: true,
       content: content,
       top: rect.bottom + window.scrollY + 8,
-      left: rect.left + rect.width / 2,
+      left: left,
     });
   };
 
