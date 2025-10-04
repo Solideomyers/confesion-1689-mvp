@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
@@ -28,7 +27,20 @@ export default function App() {
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
+  const [theme, setTheme] = useState('dark-matter');
   const touchStartX = useRef(0);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('confession_theme') || 'dark-matter';
+    setTheme(savedTheme);
+    document.documentElement.className = savedTheme;
+  }, []);
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    localStorage.setItem('confession_theme', newTheme);
+    document.documentElement.className = newTheme;
+  };
 
   const handleNavigateToReader = useCallback((index: number) => {
     setCurrentChapterIndex(index);
@@ -155,9 +167,9 @@ export default function App() {
   }, []);
 
   const handleSearchResultClick = useCallback((chapterIndex: number) => {
-    handleChapterChange(chapterIndex);
+    handleNavigateToReader(chapterIndex);
     handleCloseSearch();
-  }, [handleChapterChange, handleCloseSearch]);
+  }, [handleNavigateToReader, handleCloseSearch]);
 
   const handleToggleReaderMode = useCallback(() => {
     setIsReaderMode(prev => !prev);
@@ -168,10 +180,6 @@ export default function App() {
 
   const handleOpenChapterNav = useCallback(() => setIsChapterNavOpen(true), []);
   const handleCloseChapterNav = useCallback(() => setIsChapterNavOpen(false), []);
-  const handleSelectChapterFromNav = useCallback((index: number) => {
-    handleChapterChange(index);
-    handleCloseChapterNav();
-  }, [handleChapterChange, handleCloseChapterNav]);
   
   const handleOpenBookmarkList = useCallback(() => {
     const paragraphs = document.querySelectorAll<HTMLElement>('[id^="confession-ch"]');
@@ -212,9 +220,7 @@ export default function App() {
       const chapterIndex = confessionData.findIndex(ch => ch.chapter === chapterNumber);
       
       if (chapterIndex !== -1) {
-        if (currentChapterIndex !== chapterIndex) {
-          setCurrentChapterIndex(chapterIndex);
-        }
+        handleNavigateToReader(chapterIndex);
         setScrollToParagraphId(bookmarkId);
       }
     }
@@ -299,98 +305,105 @@ export default function App() {
     localStorage.removeItem(`scroll_ch_${currentChapterIndex}`);
   };
 
-  if (view === 'home') {
-    return <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />;
-  }
-
   const currentChapterData = confessionData[currentChapterIndex];
-  const isFloatingNavVisible = isMobile || isReaderMode;
+  const isFloatingNavVisible = view === 'reader' && (isMobile || isReaderMode);
   const isHeaderVisible = !isFloatingNavVisible;
 
   return (
     <div className="flex flex-col min-h-screen font-sans">
       <Header
+        view={view}
         onSearchClick={handleOpenSearch}
         onToggleReaderMode={handleToggleReaderMode}
         onOpenChapterNav={handleOpenChapterNav}
         isHeaderVisible={isHeaderVisible}
         onOpenBookmarkList={handleOpenBookmarkList}
         onGoHome={handleGoHome}
+        onThemeChange={handleThemeChange}
+        currentTheme={theme}
       />
+      
+      {view === 'home' ? (
+        <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />
+      ) : (
+        <>
+          <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
+            <ConfessionViewer
+              chapter={currentChapterData}
+              onShowProof={handleShowProof}
+              bookmarks={bookmarks}
+              onToggleBookmark={handleToggleBookmark}
+              onOpenNoteEditor={handleOpenNoteEditor}
+            />
+            {isHeaderVisible && (
+              <FooterNav 
+                chapters={confessionData}
+                currentChapterIndex={currentChapterIndex}
+                onChapterChange={(index) => handleNavigateToReader(index)}
+              />
+            )}
+          </main>
 
-      <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-32'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
-        <ConfessionViewer
-          chapter={currentChapterData}
-          onShowProof={handleShowProof}
-          bookmarks={bookmarks}
-          onToggleBookmark={handleToggleBookmark}
-          onOpenNoteEditor={handleOpenNoteEditor}
-        />
-        {isHeaderVisible && (
-          <FooterNav 
+          <div className={`transition-opacity duration-300 ease-in-out ${isFloatingNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <FloatingNav
+              onPrev={() => handleChapterChange(currentChapterIndex - 1)}
+              onNext={() => handleChapterChange(currentChapterIndex + 1)}
+              isPrevDisabled={currentChapterIndex === 0}
+              isNextDisabled={currentChapterIndex === confessionData.length - 1}
+              onOpenChapterNav={handleOpenChapterNav}
+              onToggleReaderMode={handleToggleReaderMode}
+              onOpenBookmarkList={handleOpenBookmarkList}
+              onThemeChange={handleThemeChange}
+              currentTheme={theme}
+            />
+          </div>
+
+          <ScripturePanel
+            isOpen={isScripturePanelOpen}
+            proof={selectedProof}
+            onClose={handleCloseScripturePanel}
+          />
+          <SearchModal 
+            isOpen={isSearchModalOpen}
+            onClose={handleCloseSearch}
+            onResultClick={handleSearchResultClick}
+          />
+          <ChapterNavigationModal
+            isOpen={isChapterNavOpen}
+            onClose={handleCloseChapterNav}
             chapters={confessionData}
             currentChapterIndex={currentChapterIndex}
-            onChapterChange={handleChapterChange}
+            onSelectChapter={(index) => handleNavigateToReader(index)}
           />
-        )}
-      </main>
-
-      <div className={`transition-opacity duration-300 ease-in-out ${isFloatingNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <FloatingNav
-          onPrev={() => handleChapterChange(currentChapterIndex - 1)}
-          onNext={() => handleChapterChange(currentChapterIndex + 1)}
-          isPrevDisabled={currentChapterIndex === 0}
-          isNextDisabled={currentChapterIndex === confessionData.length - 1}
-          onOpenChapterNav={handleOpenChapterNav}
-          onToggleReaderMode={handleToggleReaderMode}
-          onOpenBookmarkList={handleOpenBookmarkList}
-        />
-      </div>
-
-      <ScripturePanel
-        isOpen={isScripturePanelOpen}
-        proof={selectedProof}
-        onClose={handleCloseScripturePanel}
-      />
-      <SearchModal 
-        isOpen={isSearchModalOpen}
-        onClose={handleCloseSearch}
-        onResultClick={handleSearchResultClick}
-      />
-      <ChapterNavigationModal
-        isOpen={isChapterNavOpen}
-        onClose={handleCloseChapterNav}
-        chapters={confessionData}
-        currentChapterIndex={currentChapterIndex}
-        onSelectChapter={handleSelectChapterFromNav}
-      />
-      <BookmarkList
-        isOpen={isBookmarkListOpen}
-        onClose={handleCloseBookmarkList}
-        bookmarks={bookmarks}
-        confessionData={confessionData}
-        onNavigate={handleNavigateToBookmark}
-        onDelete={handleDeleteBookmark}
-        onUpdate={handleUpdateBookmark}
-        activeBookmarkId={activeBookmarkId}
-      />
-      <NoteEditorModal
-        isOpen={!!editingBookmark}
-        onClose={handleCloseNoteEditor}
-        onSave={handleUpdateBookmark}
-        bookmark={editingBookmark}
-        confessionData={confessionData}
-      />
-      {!isReaderMode && showGoToTop && (
-        <button
-          onClick={handleGoToTop}
-          className="fixed bottom-24 sm:bottom-8 right-8 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out z-20"
-          aria-label="Volver arriba"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-          </svg>
-        </button>
+          <BookmarkList
+            isOpen={isBookmarkListOpen}
+            onClose={handleCloseBookmarkList}
+            bookmarks={bookmarks}
+            confessionData={confessionData}
+            onNavigate={handleNavigateToBookmark}
+            onDelete={handleDeleteBookmark}
+            onUpdate={handleUpdateBookmark}
+            activeBookmarkId={activeBookmarkId}
+          />
+          <NoteEditorModal
+            isOpen={!!editingBookmark}
+            onClose={handleCloseNoteEditor}
+            onSave={handleUpdateBookmark}
+            bookmark={editingBookmark}
+            confessionData={confessionData}
+          />
+          {!isReaderMode && showGoToTop && (
+            <button
+              onClick={handleGoToTop}
+              className="fixed bottom-24 sm:bottom-8 right-8 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out z-20"
+              aria-label="Volver arriba"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+          )}
+        </>
       )}
     </div>
   );

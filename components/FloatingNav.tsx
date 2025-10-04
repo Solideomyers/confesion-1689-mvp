@@ -1,5 +1,5 @@
-
 import React from 'react';
+import ThemeSwitcher from './ThemeSwitcher';
 
 interface FloatingNavProps {
   onPrev: () => void;
@@ -9,6 +9,8 @@ interface FloatingNavProps {
   onOpenChapterNav: () => void;
   onToggleReaderMode: () => void;
   onOpenBookmarkList: () => void;
+  onThemeChange: (theme: string) => void;
+  currentTheme: string;
 }
 
 const FloatingNav: React.FC<FloatingNavProps> = ({
@@ -18,7 +20,9 @@ const FloatingNav: React.FC<FloatingNavProps> = ({
   isNextDisabled,
   onOpenChapterNav,
   onToggleReaderMode,
-  onOpenBookmarkList
+  onOpenBookmarkList,
+  onThemeChange,
+  currentTheme
 }) => {
   return (
     <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
@@ -71,6 +75,8 @@ const FloatingNav: React.FC<FloatingNavProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
             </svg>
         </button>
+        <div className="w-px h-6 bg-border mx-1"></div>
+        <ThemeSwitcher onThemeChange={onThemeChange} currentTheme={currentTheme} direction="up" />
       </div>
     </nav>
   );

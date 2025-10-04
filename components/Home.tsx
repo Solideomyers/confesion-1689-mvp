@@ -1,4 +1,3 @@
-
 import React from 'react';
 import type { Chapter } from '../types';
 
@@ -9,7 +8,7 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ chapters, onSelectChapter }) => {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8">
+    <main className="p-4 sm:p-8 pt-24">
       <header className="text-center max-w-3xl mx-auto my-12">
         <h1 className="text-5xl md:text-6xl font-bold font-serif text-foreground">
           La Confesión de Fe Bautista de 1689
@@ -25,7 +24,7 @@ const Home: React.FC<HomeProps> = ({ chapters, onSelectChapter }) => {
         </button>
       </header>
       
-      <main className="w-full max-w-7xl mx-auto mt-12">
+      <div className="w-full max-w-7xl mx-auto mt-12">
         <h2 className="text-3xl font-bold font-serif text-center mb-8">Índice de Capítulos</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {chapters.map((chapter, index) => (
@@ -57,8 +56,8 @@ const Home: React.FC<HomeProps> = ({ chapters, onSelectChapter }) => {
             </button>
           ))}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 };
 
