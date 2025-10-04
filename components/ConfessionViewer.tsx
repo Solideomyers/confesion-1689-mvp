@@ -27,7 +27,7 @@ const ParagraphRenderer: React.FC<{
       },
       {
         rootMargin: '0px',
-        threshold: 0.1, // Animar cuando el 10% del párrafo sea visible
+        threshold: 0.05, // Animar cuando el 5% del párrafo sea visible
       }
     );
 

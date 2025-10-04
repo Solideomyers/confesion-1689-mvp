@@ -8,9 +8,10 @@ interface HeaderProps {
   onChapterChange: (index: number) => void;
   onSearchClick: () => void;
   onToggleReaderMode: () => void;
+  isReaderMode: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapterChange, onSearchClick, onToggleReaderMode }) => {
+const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapterChange, onSearchClick, onToggleReaderMode, isReaderMode }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapte
   const displayTitle = currentChapter.chapter === 0 ? currentChapter.title : `Capítulo ${currentChapter.chapter}: ${currentChapter.title}`;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border">
+    <header className={`fixed top-0 left-0 right-0 z-10 bg-background/80 backdrop-blur-sm border-b border-border transition-transform duration-500 ease-in-out ${isReaderMode ? '-translate-y-full' : 'translate-y-0'}`}>
       <div className="max-w-5xl mx-auto p-4 flex flex-col sm:flex-row items-center justify-between">
         <h1 className="text-xl sm:text-2xl font-bold text-foreground font-serif text-center sm:text-left mb-4 sm:mb-0">
           Confesión de 1689
@@ -116,7 +117,11 @@ const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapte
           
            <button
             onClick={onToggleReaderMode}
-            className="p-2 bg-card border border-border rounded-lg hover:bg-accent transition-colors"
+            className={`p-2 rounded-lg transition-colors ${
+              isReaderMode 
+              ? 'bg-primary text-primary-foreground' 
+              : 'bg-card border border-border hover:bg-accent'
+            }`}
             aria-label="Activar modo lectura"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
