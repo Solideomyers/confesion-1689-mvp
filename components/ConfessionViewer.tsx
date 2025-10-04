@@ -100,6 +100,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     left: number;
   } | null>(null);
   const [copiedVerseIndex, setCopiedVerseIndex] = useState<number | null>(null);
+  const [expandedVerses, setExpandedVerses] = useState<Set<number>>(new Set());
    const [selectionToolbar, setSelectionToolbar] = useState<{
     visible: boolean;
     top: number;
@@ -225,7 +226,8 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     if (left + tooltipMaxWidth / 2 > viewportWidth - PADDING) {
       left = viewportWidth - tooltipMaxWidth / 2 - PADDING;
     }
-
+    
+    setExpandedVerses(new Set());
     setTooltip({
       visible: true,
       content: content,
@@ -238,6 +240,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     hideTooltipTimer.current = window.setTimeout(() => {
       setTooltip(null);
       setCopiedVerseIndex(null);
+      setExpandedVerses(new Set());
     }, 300);
   };
 
@@ -262,8 +265,20 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     }
   };
   
+  const handleToggleVerse = (index: number) => {
+    setExpandedVerses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+  
   const getCopyButtonClassName = (index: number) => {
-    const baseClasses = "absolute top-1/2 right-0 -translate-y-1/2 p-1 rounded-md text-muted-foreground focus:opacity-100 transition-opacity";
+    const baseClasses = "absolute top-2 right-2 p-1 rounded-md text-muted-foreground focus:opacity-100 transition-opacity";
     if (copiedVerseIndex === index) {
       return `${baseClasses} opacity-100`;
     }
@@ -308,7 +323,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
 
       {tooltip && tooltip.visible && (
         <div
-          className="fixed z-50 p-3 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg max-w-sm text-sm font-sans max-h-[60vh] overflow-y-auto"
+          className="fixed z-50 p-2 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg w-[350px] text-sm font-sans max-h-[60vh] overflow-y-auto"
           style={{ 
             top: `${tooltip.top}px`, 
             left: `${tooltip.left}px`,
@@ -317,31 +332,54 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
           onMouseEnter={handleMouseEnterTooltip}
           onMouseLeave={handleMouseLeaveProof}
         >
-          <ul className="space-y-3">
-            {tooltip.content.map((item, i) => (
-              <li key={i} className="relative group pr-8">
-                <p className="font-bold text-primary">{item.ref}</p>
-                {item.text && <p className="mt-1 text-popover-foreground/90 italic">"{item.text}"</p>}
-                
-                {item.text && (
+          <ul className="space-y-1">
+            {tooltip.content.map((item, i) => {
+              const isExpanded = expandedVerses.has(i);
+              return (
+                <li key={i} className="border-b border-border/50 last:border-b-0">
                   <button 
-                    onClick={() => handleCopyProof(item, i)}
-                    className={getCopyButtonClassName(i)}
-                    aria-label="Copiar texto del versículo"
+                    onClick={() => handleToggleVerse(i)}
+                    className="w-full flex justify-between items-center text-left p-2 hover:bg-accent transition-colors rounded-t-md"
+                    disabled={!item.text}
+                    aria-expanded={isExpanded}
                   >
-                  {copiedVerseIndex === i ? (
-                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  )}
+                    <span className="font-bold text-primary">{item.ref}</span>
+                    {item.text && (
+                       <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                       </svg>
+                    )}
                   </button>
-                )}
-              </li>
-            ))}
+                  
+                  <div className={`transition-all duration-300 ease-in-out grid ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className="overflow-hidden">
+                      <div className="p-3 pt-1">
+                        {item.text && (
+                          <div className="relative group">
+                            <p className="text-popover-foreground/90 italic pr-8">"{item.text}"</p>
+                            <button 
+                              onClick={() => handleCopyProof(item, i)}
+                              className={getCopyButtonClassName(i)}
+                              aria-label="Copiar texto del versículo"
+                            >
+                            {copiedVerseIndex === i ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
