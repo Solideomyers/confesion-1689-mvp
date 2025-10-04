@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { Bookmark, Chapter } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -120,9 +119,9 @@ const BookmarkList: React.FC<BookmarkListProps> = ({ isOpen, onClose, bookmarks,
 
                    return (
                       <li key={bookmark.id} className={`p-4 rounded-lg border transition-all duration-200 ease-in-out ${
-                        isEditing ? 'bg-accent/50 border-primary/50' : ''
-                      } ${
-                        bookmark.id === activeBookmarkId && !isEditing ? 'border-primary' : 'border-border'
+                        isEditing 
+                          ? 'bg-accent/50 border-primary/50' 
+                          : `hover:bg-accent hover:-translate-y-1 active:scale-[0.98] ${bookmark.id === activeBookmarkId ? 'border-primary' : 'border-border'}`
                       }`}>
                         {isEditing ? (
                           <div>
