@@ -1,4 +1,4 @@
-import React, { memo, useState, useRef } from 'react';
+import React, { memo, useState, useRef, useEffect } from 'react';
 import type { Chapter, Paragraph, ScriptureProof } from '../types';
 import ParagraphNotes from './ParagraphNotes';
 
@@ -14,6 +14,35 @@ const ParagraphRenderer: React.FC<{
   onMouseLeaveProof: () => void;
   chapterNumber: number;
 }> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const paragraphRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      {
+        rootMargin: '0px',
+        threshold: 0.1, // Animar cuando el 10% del párrafo sea visible
+      }
+    );
+
+    const currentRef = paragraphRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, []);
+
   const parts = paragraph.text.split(/({[a-z]})/);
 
   const findProof = (refChar: string) => {
@@ -23,7 +52,12 @@ const ParagraphRenderer: React.FC<{
   const paragraphId = `confession-ch${chapterNumber}-p${paragraph.paragraph}`;
 
   return (
-    <div className="mb-6 border-b border-border/50 pb-6 last:border-b-0 last:pb-0">
+    <div
+      ref={paragraphRef}
+      className={`mb-6 border-b border-border/50 pb-6 last:border-b-0 last:pb-0 transition-all duration-700 ease-out ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      }`}
+    >
       <p className="text-lg leading-relaxed font-serif text-muted-foreground">
         <span className="font-bold text-foreground pr-2">{paragraph.paragraph}.</span>
         {parts.map((part, index) => {
