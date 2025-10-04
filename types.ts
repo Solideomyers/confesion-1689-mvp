@@ -16,3 +16,5 @@ export interface Chapter {
   title: string;
   paragraphs: Paragraph[];
 }
+
+export type Bookmark = string;

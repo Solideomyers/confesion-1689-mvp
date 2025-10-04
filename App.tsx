@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import type { ScriptureProof, Chapter } from './types';
+import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
 import Header from './components/Header';
 import ConfessionViewer from './components/ConfessionViewer';
@@ -9,6 +9,7 @@ import SearchModal from './components/SearchModal';
 import FooterNav from './components/FooterNav';
 import ChapterNavigationModal from './components/ChapterNavigationModal';
 import FloatingNav from './components/FloatingNav';
+import BookmarkList from './components/BookmarkList';
 
 export default function App() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -19,6 +20,9 @@ export default function App() {
   const [isReaderMode, setIsReaderMode] = useState(false);
   const [isChapterNavOpen, setIsChapterNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [isBookmarkListOpen, setIsBookmarkListOpen] = useState(false);
+  const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const touchStartX = useRef(0);
 
   useEffect(() => {
@@ -27,6 +31,46 @@ export default function App() {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  useEffect(() => {
+    try {
+      const savedBookmarks = localStorage.getItem('confession_bookmarks');
+      if (savedBookmarks) {
+        setBookmarks(JSON.parse(savedBookmarks));
+      }
+    } catch (error) {
+      console.error("Failed to parse bookmarks from localStorage", error);
+      setBookmarks([]);
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (scrollToParagraphId) {
+      // Use a short timeout to allow the new chapter to render
+      setTimeout(() => {
+        const element = document.getElementById(scrollToParagraphId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add a temporary highlight effect
+          element.classList.add('highlight-bookmark');
+          setTimeout(() => element.classList.remove('highlight-bookmark'), 2000);
+        }
+        setScrollToParagraphId(null); // Reset after scrolling
+      }, 100); 
+    }
+  }, [scrollToParagraphId]);
+
+  const handleToggleBookmark = useCallback((paragraphId: string) => {
+    setBookmarks(prevBookmarks => {
+      const isBookmarked = prevBookmarks.includes(paragraphId);
+      const newBookmarks = isBookmarked
+        ? prevBookmarks.filter(id => id !== paragraphId)
+        : [...prevBookmarks, paragraphId];
+      
+      localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
+      return newBookmarks;
+    });
   }, []);
 
 
@@ -84,6 +128,25 @@ export default function App() {
     handleChapterChange(index);
     handleCloseChapterNav();
   }, [handleChapterChange, handleCloseChapterNav]);
+  
+  const handleOpenBookmarkList = useCallback(() => setIsBookmarkListOpen(true), []);
+  const handleCloseBookmarkList = useCallback(() => setIsBookmarkListOpen(false), []);
+  
+  const handleNavigateToBookmark = (bookmarkId: Bookmark) => {
+    const parts = bookmarkId.match(/ch(\d+)-p(\d+)/);
+    if (parts) {
+      const chapterNumber = parseInt(parts[1], 10);
+      const chapterIndex = confessionData.findIndex(ch => ch.chapter === chapterNumber);
+      
+      if (chapterIndex !== -1) {
+        if (currentChapterIndex !== chapterIndex) {
+          setCurrentChapterIndex(chapterIndex);
+        }
+        setScrollToParagraphId(bookmarkId);
+      }
+    }
+    handleCloseBookmarkList();
+  };
 
   useEffect(() => {
     let scrollTimeout: number;
@@ -120,7 +183,7 @@ export default function App() {
   // Keyboard and Swipe Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen) return;
+      if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen || isBookmarkListOpen) return;
 
       if (e.key === 'ArrowLeft') {
         handleChapterChange(currentChapterIndex - 1);
@@ -134,7 +197,7 @@ export default function App() {
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen) return;
+      if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen || isBookmarkListOpen) return;
 
       const touchEndX = e.changedTouches[0].clientX;
       const deltaX = touchEndX - touchStartX.current;
@@ -156,7 +219,7 @@ export default function App() {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen, isChapterNavOpen]);
+  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen, isChapterNavOpen, isBookmarkListOpen]);
 
 
   const handleGoToTop = () => {
@@ -176,12 +239,15 @@ export default function App() {
         onToggleReaderMode={handleToggleReaderMode}
         onOpenChapterNav={handleOpenChapterNav}
         isHeaderVisible={isHeaderVisible}
+        onOpenBookmarkList={handleOpenBookmarkList}
       />
 
       <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-32'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
         <ConfessionViewer
           chapter={currentChapterData}
           onShowProof={handleShowProof}
+          bookmarks={bookmarks}
+          onToggleBookmark={handleToggleBookmark}
         />
         {isHeaderVisible && (
           <FooterNav 
@@ -200,6 +266,7 @@ export default function App() {
           isNextDisabled={currentChapterIndex === confessionData.length - 1}
           onOpenChapterNav={handleOpenChapterNav}
           onToggleReaderMode={handleToggleReaderMode}
+          onOpenBookmarkList={handleOpenBookmarkList}
         />
       </div>
 
@@ -219,6 +286,13 @@ export default function App() {
         chapters={confessionData}
         currentChapterIndex={currentChapterIndex}
         onSelectChapter={handleSelectChapterFromNav}
+      />
+      <BookmarkList
+        isOpen={isBookmarkListOpen}
+        onClose={handleCloseBookmarkList}
+        bookmarks={bookmarks}
+        confessionData={confessionData}
+        onNavigate={handleNavigateToBookmark}
       />
       {!isReaderMode && showGoToTop && (
         <button
