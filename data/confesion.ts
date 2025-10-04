@@ -95,5 +95,49 @@ export const confessionData: Chapter[] = [
         ]
       },
     ]
+  },
+  {
+    chapter: 3,
+    title: "De los Decretos de Dios",
+    paragraphs: [
+      {
+        paragraph: 1,
+        text: "Este es un texto de marcador de posición para el capítulo 3. El contenido real de la confesión se agregará aquí.",
+        proofs: []
+      }
+    ]
+  },
+  {
+    chapter: 4,
+    title: "De la Creación",
+    paragraphs: [
+      {
+        paragraph: 1,
+        text: "Este es un texto de marcador de posición para el capítulo 4. El contenido real de la confesión se agregará aquí.",
+        proofs: []
+      }
+    ]
+  },
+  {
+    chapter: 5,
+    title: "De la Divina Providencia",
+    paragraphs: [
+      {
+        paragraph: 1,
+        text: "Este es un texto de marcador de posición para el capítulo 5. El contenido real de la confesión se agregará aquí.",
+        proofs: []
+      }
+    ]
+  },
+  {
+    chapter: 6,
+    title: "De la Caída del Hombre, del Pecado y de su Castigo",
+    paragraphs: [
+      {
+        paragraph: 1,
+        text: "Este es un texto de marcador de posición para el capítulo 6. El contenido real de la confesión se agregará aquí.",
+        proofs: []
+      }
+    ]
   }
 ];
