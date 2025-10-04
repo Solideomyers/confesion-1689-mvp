@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import type { Chapter } from '../types';
 
 interface HeaderProps {
@@ -9,11 +9,10 @@ interface HeaderProps {
   onSearchClick: () => void;
   onToggleReaderMode: () => void;
   isReaderMode: boolean;
+  onOpenChapterNav: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapterChange, onSearchClick, onToggleReaderMode, isReaderMode }) => {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapterChange, onSearchClick, onToggleReaderMode, isReaderMode, onOpenChapterNav }) => {
 
   const handlePrev = () => {
     onChapterChange(currentChapterIndex - 1);
@@ -22,25 +21,7 @@ const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapte
   const handleNext = () => {
     onChapterChange(currentChapterIndex + 1);
   };
-
-  const handleChapterSelect = (index: number) => {
-    onChapterChange(index);
-    setIsDropdownOpen(false);
-  };
   
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   const currentChapter = chapters[currentChapterIndex];
   const displayTitle = currentChapter.chapter === 0 ? currentChapter.title : `Capítulo ${currentChapter.chapter}: ${currentChapter.title}`;
 
@@ -63,35 +44,16 @@ const Header: React.FC<HeaderProps> = ({ chapters, currentChapterIndex, onChapte
             </svg>
           </button>
           
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          <button
+              onClick={onOpenChapterNav}
               className="w-48 sm:w-64 bg-card border border-border text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring flex items-center justify-between"
+              aria-label="Abrir índice de capítulos"
             >
               <span className="truncate">{displayTitle}</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ml-2 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
-            {isDropdownOpen && (
-              <ul className="absolute top-full mt-2 w-full bg-popover border border-border rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto">
-                {chapters.map((chapter, index) => (
-                  <li key={index}>
-                    <button
-                      onClick={() => handleChapterSelect(index)}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                        currentChapterIndex === index
-                          ? 'bg-accent text-primary'
-                          : 'text-muted-foreground hover:bg-accent'
-                      }`}
-                    >
-                      {chapter.chapter === 0 ? chapter.title : `Cap. ${chapter.chapter}: ${chapter.title}`}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
 
 
           <button

@@ -6,6 +6,8 @@ import Header from './components/Header';
 import ConfessionViewer from './components/ConfessionViewer';
 import ScripturePanel from './components/ScripturePanel';
 import SearchModal from './components/SearchModal';
+import FooterNav from './components/FooterNav';
+import ChapterNavigationModal from './components/ChapterNavigationModal';
 
 export default function App() {
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -14,6 +16,7 @@ export default function App() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [showGoToTop, setShowGoToTop] = useState(false);
   const [isReaderMode, setIsReaderMode] = useState(false);
+  const [isChapterNavOpen, setIsChapterNavOpen] = useState(false);
   const touchStartX = useRef(0);
 
 
@@ -65,6 +68,13 @@ export default function App() {
     }
   }, [isReaderMode]);
 
+  const handleOpenChapterNav = useCallback(() => setIsChapterNavOpen(true), []);
+  const handleCloseChapterNav = useCallback(() => setIsChapterNavOpen(false), []);
+  const handleSelectChapterFromNav = useCallback((index: number) => {
+    handleChapterChange(index);
+    handleCloseChapterNav();
+  }, [handleChapterChange, handleCloseChapterNav]);
+
   useEffect(() => {
     let scrollTimeout: number;
 
@@ -97,7 +107,7 @@ export default function App() {
   // Keyboard and Swipe Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isSearchModalOpen || isScripturePanelOpen) return;
+      if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen) return;
 
       if (e.key === 'ArrowLeft') {
         handleChapterChange(currentChapterIndex - 1);
@@ -111,7 +121,7 @@ export default function App() {
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (isSearchModalOpen || isScripturePanelOpen) return;
+      if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen) return;
 
       const touchEndX = e.changedTouches[0].clientX;
       const deltaX = touchEndX - touchStartX.current;
@@ -133,7 +143,7 @@ export default function App() {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen]);
+  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen, isChapterNavOpen]);
 
 
   const handleGoToTop = () => {
@@ -152,6 +162,7 @@ export default function App() {
         onSearchClick={handleOpenSearch}
         onToggleReaderMode={handleToggleReaderMode}
         isReaderMode={isReaderMode}
+        onOpenChapterNav={handleOpenChapterNav}
       />
       
       {isReaderMode && (
@@ -171,6 +182,13 @@ export default function App() {
           chapter={currentChapterData}
           onShowProof={handleShowProof}
         />
+        {!isReaderMode && (
+          <FooterNav 
+            chapters={confessionData}
+            currentChapterIndex={currentChapterIndex}
+            onChapterChange={handleChapterChange}
+          />
+        )}
       </main>
       <ScripturePanel
         isOpen={isScripturePanelOpen}
@@ -181,6 +199,13 @@ export default function App() {
         isOpen={isSearchModalOpen}
         onClose={handleCloseSearch}
         onResultClick={handleSearchResultClick}
+      />
+      <ChapterNavigationModal
+        isOpen={isChapterNavOpen}
+        onClose={handleCloseChapterNav}
+        chapters={confessionData}
+        currentChapterIndex={currentChapterIndex}
+        onSelectChapter={handleSelectChapterFromNav}
       />
       {!isReaderMode && showGoToTop && (
         <button
