@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
@@ -23,6 +24,7 @@ export default function App() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [isBookmarkListOpen, setIsBookmarkListOpen] = useState(false);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
+  const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
   const touchStartX = useRef(0);
 
   useEffect(() => {
@@ -70,6 +72,14 @@ export default function App() {
       
       localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
       return newBookmarks;
+    });
+  }, []);
+  
+  const handleDeleteBookmark = useCallback((bookmarkId: string) => {
+    setBookmarks(prevBookmarks => {
+        const newBookmarks = prevBookmarks.filter(id => id !== bookmarkId);
+        localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
+        return newBookmarks;
     });
   }, []);
 
@@ -129,8 +139,37 @@ export default function App() {
     handleCloseChapterNav();
   }, [handleChapterChange, handleCloseChapterNav]);
   
-  const handleOpenBookmarkList = useCallback(() => setIsBookmarkListOpen(true), []);
-  const handleCloseBookmarkList = useCallback(() => setIsBookmarkListOpen(false), []);
+  const handleOpenBookmarkList = useCallback(() => {
+    const paragraphs = document.querySelectorAll<HTMLElement>('[id^="confession-ch"]');
+    let topParagraph: HTMLElement | null = null;
+    let minTopValue = Infinity;
+
+    paragraphs.forEach(p => {
+      const rect = p.getBoundingClientRect();
+      if (rect.top >= 0 && rect.top < minTopValue) {
+        minTopValue = rect.top;
+        topParagraph = p;
+      }
+    });
+
+    if (topParagraph) {
+      const topParagraphId = topParagraph.id;
+      if (bookmarks.includes(topParagraphId)) {
+        setActiveBookmarkId(topParagraphId);
+      } else {
+        setActiveBookmarkId(null);
+      }
+    } else {
+      setActiveBookmarkId(null);
+    }
+    
+    setIsBookmarkListOpen(true);
+  }, [bookmarks]);
+  
+  const handleCloseBookmarkList = useCallback(() => {
+    setIsBookmarkListOpen(false);
+    setActiveBookmarkId(null);
+  }, []);
   
   const handleNavigateToBookmark = (bookmarkId: Bookmark) => {
     const parts = bookmarkId.match(/ch(\d+)-p(\d+)/);
@@ -293,6 +332,8 @@ export default function App() {
         bookmarks={bookmarks}
         confessionData={confessionData}
         onNavigate={handleNavigateToBookmark}
+        onDelete={handleDeleteBookmark}
+        activeBookmarkId={activeBookmarkId}
       />
       {!isReaderMode && showGoToTop && (
         <button
