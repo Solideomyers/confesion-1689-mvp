@@ -13,7 +13,8 @@ const ParagraphRenderer: React.FC<{
   onMouseEnterProof: (proof: ScriptureProof, e: React.MouseEvent<HTMLButtonElement>) => void;
   onMouseLeaveProof: () => void;
   chapterNumber: number;
-}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber }) => {
+  chapterTitle: string;
+}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle }) => {
   const [isVisible, setIsVisible] = useState(false);
   const paragraphRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,6 +55,9 @@ const ParagraphRenderer: React.FC<{
   return (
     <div
       ref={paragraphRef}
+      data-chapter-number={chapterNumber}
+      data-chapter-title={chapterTitle}
+      data-paragraph-number={paragraph.paragraph}
       className={`relative group mb-6 border-b border-border/50 pb-6 last:border-b-0 last:pb-0 transition-all duration-700 ease-out ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
@@ -101,6 +105,9 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     top: number;
     left: number;
     isCopied: boolean;
+    chapterNumber?: string;
+    chapterTitle?: string;
+    paragraphNumber?: string;
   }>({ visible: false, top: 0, left: 0, isCopied: false });
 
   const hideTooltipTimer = useRef<number | null>(null);
@@ -111,21 +118,26 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
   useEffect(() => {
     const handleMouseUp = () => {
       const selection = window.getSelection();
-      if (selection && selection.toString().trim().length > 0) {
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        
-        setSelectionToolbar({
-          visible: true,
-          top: rect.top + window.scrollY - 50, // Position above selection
-          left: rect.left + window.scrollX + rect.width / 2,
-          isCopied: false,
-        });
+      if (selection && selection.toString().trim().length > 0 && selection.anchorNode) {
+        const targetParagraph = (selection.anchorNode.parentElement as HTMLElement)?.closest('[data-paragraph-number]');
+        if (targetParagraph) {
+            const rect = selection.getRangeAt(0).getBoundingClientRect();
+            const { chapterNumber, chapterTitle, paragraphNumber } = (targetParagraph as HTMLElement).dataset;
+            
+            setSelectionToolbar({
+              visible: true,
+              top: rect.top + window.scrollY - 50,
+              left: rect.left + window.scrollX + rect.width / 2,
+              isCopied: false,
+              chapterNumber,
+              chapterTitle,
+              paragraphNumber
+            });
+        }
       }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
-      // Hide toolbar if clicking outside of it
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
         setSelectionToolbar(prev => ({ ...prev, visible: false, isCopied: false }));
       }
@@ -143,11 +155,25 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
   const handleCopySelection = async () => {
     const selection = window.getSelection();
     if (selection) {
+      const selectedText = selection.toString();
+      const { chapterNumber, chapterTitle, paragraphNumber } = selectionToolbar;
+      const isPreface = chapterNumber === '0';
+
+      let reference = `(2CFL-1689`;
+      if (isPreface) {
+        reference += `, ${chapterTitle}`;
+      } else {
+        reference += `, Cap. ${chapterNumber}: ${chapterTitle}`;
+      }
+       reference += `, Párrafo ${paragraphNumber})`;
+
+      const textToCopy = `"${selectedText}"\n\n${reference}`;
+
       try {
-        await navigator.clipboard.writeText(selection.toString());
+        await navigator.clipboard.writeText(textToCopy);
         setSelectionToolbar(prev => ({ ...prev, isCopied: true }));
         setTimeout(() => {
-           setSelectionToolbar(prev => ({...prev, isCopied: false }));
+           setSelectionToolbar(prev => ({...prev, isCopied: false, visible: false }));
         }, 2000);
       } catch (err) {
         console.error('Failed to copy text: ', err);
@@ -174,12 +200,10 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
 
     let left = rect.left + rect.width / 2;
 
-    // Check for left overflow
     if (left - tooltipMaxWidth / 2 < PADDING) {
       left = tooltipMaxWidth / 2 + PADDING;
     }
 
-    // Check for right overflow
     if (left + tooltipMaxWidth / 2 > viewportWidth - PADDING) {
       left = viewportWidth - tooltipMaxWidth / 2 - PADDING;
     }
@@ -319,6 +343,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
             onMouseEnterProof={handleMouseEnterProof}
             onMouseLeaveProof={handleMouseLeaveProof}
             chapterNumber={chapter.chapter}
+            chapterTitle={chapter.title}
           />
         ))}
       </div>
