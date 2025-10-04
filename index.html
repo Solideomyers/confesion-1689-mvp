@@ -64,6 +64,20 @@
       .highlight-bookmark {
         animation: highlight-fade 2s ease-out;
       }
+      .inverted-corner::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 2rem;
+        height: 2rem;
+        background: radial-gradient(circle at top left, transparent 0, transparent 1.9rem, var(--background) 2rem);
+        pointer-events: none;
+      }
+      .dark .inverted-corner::before {
+         background: radial-gradient(circle at top left, transparent 0, transparent 1.9rem, var(--card) 2rem);
+      }
+
     </style>
     <script>
         tailwind.config = {

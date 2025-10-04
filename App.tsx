@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { ScriptureProof, Chapter, Bookmark } from './types';
 import { confessionData } from './data/confesion';
@@ -12,8 +11,10 @@ import ChapterNavigationModal from './components/ChapterNavigationModal';
 import FloatingNav from './components/FloatingNav';
 import BookmarkList from './components/BookmarkList';
 import NoteEditorModal from './components/NoteEditorModal';
+import Home from './components/Home';
 
 export default function App() {
+  const [view, setView] = useState<'home' | 'reader'>('home');
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [isScripturePanelOpen, setIsScripturePanelOpen] = useState(false);
   const [selectedProof, setSelectedProof] = useState<ScriptureProof | null>(null);
@@ -28,6 +29,16 @@ export default function App() {
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const touchStartX = useRef(0);
+
+  const handleNavigateToReader = useCallback((index: number) => {
+    setCurrentChapterIndex(index);
+    setView('reader');
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+
+  const handleGoHome = useCallback(() => {
+    setView('home');
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -51,16 +62,14 @@ export default function App() {
   
   useEffect(() => {
     if (scrollToParagraphId) {
-      // Use a short timeout to allow the new chapter to render
       setTimeout(() => {
         const element = document.getElementById(scrollToParagraphId);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Add a temporary highlight effect
           element.classList.add('highlight-bookmark');
           setTimeout(() => element.classList.remove('highlight-bookmark'), 2000);
         }
-        setScrollToParagraphId(null); // Reset after scrolling
+        setScrollToParagraphId(null);
       }, 100); 
     }
   }, [scrollToParagraphId]);
@@ -120,11 +129,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const savedScroll = localStorage.getItem(`scroll_ch_${currentChapterIndex}`);
-    if (savedScroll) {
-      window.scrollTo(0, parseInt(savedScroll, 10));
+    if (view === 'reader') {
+      const savedScroll = localStorage.getItem(`scroll_ch_${currentChapterIndex}`);
+      if (savedScroll) {
+        window.scrollTo(0, parseInt(savedScroll, 10));
+      }
     }
-  }, [currentChapterIndex]);
+  }, [currentChapterIndex, view]);
 
   const handleShowProof = useCallback((proof: ScriptureProof) => {
     setSelectedProof(proof);
@@ -150,7 +161,7 @@ export default function App() {
 
   const handleToggleReaderMode = useCallback(() => {
     setIsReaderMode(prev => !prev);
-    if (!isReaderMode) { // Al entrar en modo lectura
+    if (!isReaderMode) {
       setShowGoToTop(false);
     }
   }, [isReaderMode]);
@@ -211,19 +222,19 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (view !== 'reader') return;
+
     let scrollTimeout: number;
 
     const handleScroll = () => {
       const scrollY = window.scrollY;
       
-      // Go to top button visibility
       if (!isReaderMode) {
         setShowGoToTop(scrollY > 200);
       } else {
         setShowGoToTop(false);
       }
 
-      // Save scroll position
       clearTimeout(scrollTimeout);
       scrollTimeout = window.setTimeout(() => {
         if (scrollY > 50) {
@@ -239,11 +250,11 @@ export default function App() {
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(scrollTimeout);
     };
-  }, [currentChapterIndex, isReaderMode]);
+  }, [currentChapterIndex, isReaderMode, view]);
 
-
-  // Keyboard and Swipe Navigation
   useEffect(() => {
+    if (view !== 'reader') return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isSearchModalOpen || isScripturePanelOpen || isChapterNavOpen || isBookmarkListOpen) return;
 
@@ -265,9 +276,9 @@ export default function App() {
       const deltaX = touchEndX - touchStartX.current;
       const minSwipeDistance = 50;
 
-      if (deltaX > minSwipeDistance) { // Swipe Right
+      if (deltaX > minSwipeDistance) {
         handleChapterChange(currentChapterIndex - 1);
-      } else if (deltaX < -minSwipeDistance) { // Swipe Left
+      } else if (deltaX < -minSwipeDistance) {
         handleChapterChange(currentChapterIndex + 1);
       }
     };
@@ -281,16 +292,18 @@ export default function App() {
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen, isChapterNavOpen, isBookmarkListOpen]);
-
+  }, [currentChapterIndex, handleChapterChange, isSearchModalOpen, isScripturePanelOpen, isChapterNavOpen, isBookmarkListOpen, view]);
 
   const handleGoToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     localStorage.removeItem(`scroll_ch_${currentChapterIndex}`);
   };
 
+  if (view === 'home') {
+    return <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />;
+  }
+
   const currentChapterData = confessionData[currentChapterIndex];
-  
   const isFloatingNavVisible = isMobile || isReaderMode;
   const isHeaderVisible = !isFloatingNavVisible;
 
@@ -302,6 +315,7 @@ export default function App() {
         onOpenChapterNav={handleOpenChapterNav}
         isHeaderVisible={isHeaderVisible}
         onOpenBookmarkList={handleOpenBookmarkList}
+        onGoHome={handleGoHome}
       />
 
       <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-32'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
