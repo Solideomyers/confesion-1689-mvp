@@ -27,11 +27,8 @@ const Header: React.FC<HeaderProps> = ({
   currentTheme,
   onGoToDashboard
 }) => {
-  const isReaderView = view === 'reader';
-  const isFloatingNavVisible = isReaderView && (window.innerWidth < 768 || document.documentElement.classList.contains('reader-mode-active')); // A simplified check
-
   return (
-    <header className={`fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-300 ease-in-out ${isReaderView && isFloatingNavVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    <header className={`fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-300 ease-in-out ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <div className="max-w-7xl mx-auto p-4 flex items-center justify-between">
         <button onClick={onGoHome} className="text-left" disabled={view === 'home'}>
             <h1 className="text-xl sm:text-2xl font-bold text-foreground font-serif text-center sm:text-left break-words">
@@ -39,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({
             </h1>
         </button>
         <div className="flex items-center space-x-2">
-          {isReaderView ? (
+          {view === 'reader' ? (
             <>
               <button
                   onClick={onOpenChapterNav}

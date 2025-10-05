@@ -70,8 +70,9 @@ export default function App() {
         localStorage.removeItem(`scroll_ch_${index}`);
     });
     setBookmarks([]);
-    setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme');
-    document.documentElement.className = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme';
+    const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme';
+    setTheme(defaultTheme);
+    document.documentElement.className = defaultTheme;
     setView('home');
   }, []);
 
@@ -328,54 +329,66 @@ export default function App() {
     localStorage.removeItem(`scroll_ch_${currentChapterIndex}`);
   };
 
-  const renderContent = () => {
-    switch (view) {
-      case 'home':
-        return <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />;
-      case 'dashboard': {
-        const readingProgress = Math.round(((currentChapterIndex + 1) / confessionData.length) * 100);
-        const noteCount = bookmarks.filter(b => b.note && b.note.trim() !== '').length;
-        const stats = {
-          readingProgress,
-          bookmarkCount: bookmarks.length,
-          noteCount
-        };
-        const handleExportData = () => {
-            const dataStr = JSON.stringify({ bookmarks }, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            const exportFileDefaultName = 'confession_data.json';
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-        };
+  const isFloatingNavVisible = view === 'reader' && (isMobile || isReaderMode);
+  const isHeaderVisible = !isFloatingNavVisible;
 
-        return <Dashboard stats={stats} onExportData={handleExportData} onDeleteAllData={handleDeleteAllData} />;
-      }
-      case 'reader': {
-        const currentChapterData = confessionData[currentChapterIndex];
-        const isFloatingNavVisible = isMobile || isReaderMode;
-        const isHeaderVisible = !isFloatingNavVisible;
-        return (
-            <>
-                <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
-                    <ConfessionViewer
-                    chapter={currentChapterData}
-                    onShowProof={handleShowProof}
-                    bookmarks={bookmarks}
-                    onToggleBookmark={handleToggleBookmark}
-                    onOpenNoteEditor={handleOpenNoteEditor}
-                    />
-                    {isHeaderVisible && (
-                    <FooterNav 
-                        chapters={confessionData}
-                        currentChapterIndex={currentChapterIndex}
-                        onChapterChange={(index) => handleNavigateToReader(index)}
-                    />
-                    )}
-                </main>
-                <div className={`transition-opacity duration-300 ease-in-out ${isFloatingNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                    <FloatingNav
+  return (
+    <div className="flex flex-col min-h-screen font-sans">
+      <Header
+        view={view}
+        onSearchClick={handleOpenSearch}
+        onToggleReaderMode={handleToggleReaderMode}
+        onOpenChapterNav={handleOpenChapterNav}
+        isHeaderVisible={isHeaderVisible}
+        onOpenBookmarkList={handleOpenBookmarkList}
+        onGoHome={handleGoHome}
+        onThemeChange={handleThemeChange}
+        currentTheme={theme}
+        onGoToDashboard={handleGoToDashboard}
+      />
+      
+      {view === 'home' && <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />}
+      
+      {view === 'dashboard' && (() => {
+          const readingProgress = Math.round(((currentChapterIndex + 1) / confessionData.length) * 100);
+          const noteCount = bookmarks.filter(b => b.note && b.note.trim() !== '').length;
+          const stats = { readingProgress, bookmarkCount: bookmarks.length, noteCount };
+          const handleExportData = () => {
+              const dataStr = JSON.stringify({ bookmarks }, null, 2);
+              const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+              const exportFileDefaultName = 'confession_data.json';
+              const linkElement = document.createElement('a');
+              linkElement.setAttribute('href', dataUri);
+              linkElement.setAttribute('download', exportFileDefaultName);
+              linkElement.click();
+          };
+          return <Dashboard stats={stats} onExportData={handleExportData} onDeleteAllData={handleDeleteAllData} />;
+      })()}
+
+      {view === 'reader' && (
+        <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
+            <ConfessionViewer
+                chapter={confessionData[currentChapterIndex]}
+                onShowProof={handleShowProof}
+                bookmarks={bookmarks}
+                onToggleBookmark={handleToggleBookmark}
+                onOpenNoteEditor={handleOpenNoteEditor}
+            />
+            {isHeaderVisible && (
+                <FooterNav 
+                    chapters={confessionData}
+                    currentChapterIndex={currentChapterIndex}
+                    onChapterChange={(index) => handleNavigateToReader(index)}
+                />
+            )}
+        </main>
+      )}
+
+      {/* Reader View specific components */}
+      {view === 'reader' && (
+        <>
+            <div className={`transition-opacity duration-300 ease-in-out ${isFloatingNavVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <FloatingNav
                     onPrev={() => handleChapterChange(currentChapterIndex - 1)}
                     onNext={() => handleChapterChange(currentChapterIndex + 1)}
                     isPrevDisabled={currentChapterIndex === 0}
@@ -385,83 +398,55 @@ export default function App() {
                     onOpenBookmarkList={handleOpenBookmarkList}
                     onThemeChange={handleThemeChange}
                     currentTheme={theme}
-                    />
-                </div>
-                 {!isReaderMode && showGoToTop && (
-                    <button
+                />
+            </div>
+            {!isReaderMode && showGoToTop && (
+                <button
                     onClick={handleGoToTop}
                     className="fixed bottom-24 sm:bottom-8 right-8 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 ease-in-out z-20"
                     aria-label="Volver arriba"
-                    >
+                >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                     </svg>
-                    </button>
-                )}
-            </>
-        );
-      }
-      default:
-        return <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />;
-    }
-  };
-
-
-  return (
-    <div className="flex flex-col min-h-screen font-sans">
-      <Header
-        view={view}
-        onSearchClick={handleOpenSearch}
-        onToggleReaderMode={handleToggleReaderMode}
-        onOpenChapterNav={handleOpenChapterNav}
-        isHeaderVisible={true} // Simplified, Header manages its own content visibility
-        onOpenBookmarkList={handleOpenBookmarkList}
-        onGoHome={handleGoHome}
-        onThemeChange={handleThemeChange}
-        currentTheme={theme}
-        onGoToDashboard={handleGoToDashboard}
-      />
-      
-      {renderContent()}
-
-      {view === 'reader' && (
-        <>
+                </button>
+            )}
             <ScripturePanel
-            isOpen={isScripturePanelOpen}
-            proof={selectedProof}
-            onClose={handleCloseScripturePanel}
+                isOpen={isScripturePanelOpen}
+                proof={selectedProof}
+                onClose={handleCloseScripturePanel}
             />
             <SearchModal 
-            isOpen={isSearchModalOpen}
-            onClose={handleCloseSearch}
-            onResultClick={handleSearchResultClick}
+                isOpen={isSearchModalOpen}
+                onClose={handleCloseSearch}
+                onResultClick={handleSearchResultClick}
             />
             <ChapterNavigationModal
-            isOpen={isChapterNavOpen}
-            onClose={handleCloseChapterNav}
-            chapters={confessionData}
-            currentChapterIndex={currentChapterIndex}
-            onSelectChapter={(index) => {
-                handleNavigateToReader(index);
-                handleCloseChapterNav();
-            }}
+                isOpen={isChapterNavOpen}
+                onClose={handleCloseChapterNav}
+                chapters={confessionData}
+                currentChapterIndex={currentChapterIndex}
+                onSelectChapter={(index) => {
+                    handleNavigateToReader(index);
+                    handleCloseChapterNav();
+                }}
             />
             <BookmarkList
-            isOpen={isBookmarkListOpen}
-            onClose={handleCloseBookmarkList}
-            bookmarks={bookmarks}
-            confessionData={confessionData}
-            onNavigate={handleNavigateToBookmark}
-            onDelete={handleDeleteBookmark}
-            onUpdate={handleUpdateBookmark}
-            activeBookmarkId={activeBookmarkId}
+                isOpen={isBookmarkListOpen}
+                onClose={handleCloseBookmarkList}
+                bookmarks={bookmarks}
+                confessionData={confessionData}
+                onNavigate={handleNavigateToBookmark}
+                onDelete={handleDeleteBookmark}
+                onUpdate={handleUpdateBookmark}
+                activeBookmarkId={activeBookmarkId}
             />
             <NoteEditorModal
-            isOpen={!!editingBookmark}
-            onClose={handleCloseNoteEditor}
-            onSave={handleUpdateBookmark}
-            bookmark={editingBookmark}
-            confessionData={confessionData}
+                isOpen={!!editingBookmark}
+                onClose={handleCloseNoteEditor}
+                onSave={handleUpdateBookmark}
+                bookmark={editingBookmark}
+                confessionData={confessionData}
             />
         </>
       )}
