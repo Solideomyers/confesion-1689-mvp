@@ -13,6 +13,7 @@ interface HeaderProps {
   onThemeChange: (theme: string) => void;
   currentTheme: string;
   onGoToDashboard: () => void;
+  onOpenReadingSettings: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -25,7 +26,8 @@ const Header: React.FC<HeaderProps> = ({
   onGoHome,
   onThemeChange,
   currentTheme,
-  onGoToDashboard
+  onGoToDashboard,
+  onOpenReadingSettings
 }) => {
   return (
     <header className={`fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border transition-opacity duration-300 ease-in-out ${isHeaderVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -44,6 +46,17 @@ const Header: React.FC<HeaderProps> = ({
                   aria-label="Abrir índice de capítulos"
                 >
                   Índice
+              </button>
+              
+              <button
+                onClick={onOpenReadingSettings}
+                className="p-2 bg-card border border-border rounded-lg hover:bg-accent transition-colors"
+                aria-label="Ajustes de lectura"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.884 5.036A9 9 0 0117.965 15h.015" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5a2 2 0 01-2-2h4a2 2 0 01-2 2zm0 0v.01" />
+                </svg>
               </button>
 
               <button

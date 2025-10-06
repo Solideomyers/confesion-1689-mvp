@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import type { ScriptureProof, Chapter, Bookmark } from './types';
+import type { ScriptureProof, Chapter, Bookmark, ReadingSettings } from './types';
 import { confessionData } from './data/confesion';
 import Header from './components/Header';
 import ConfessionViewer from './components/ConfessionViewer';
@@ -13,6 +13,7 @@ import BookmarkList from './components/BookmarkList';
 import NoteEditorModal from './components/NoteEditorModal';
 import Home from './components/Home';
 import Dashboard from './components/Dashboard';
+import ReadingSettingsPopover from './components/ReadingSettingsPopover';
 
 export default function App() {
   const [view, setView] = useState<'home' | 'reader' | 'dashboard'>('home');
@@ -30,6 +31,13 @@ export default function App() {
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [theme, setTheme] = useState('dark-matter');
+  const [isReadingSettingsOpen, setIsReadingSettingsOpen] = useState(false);
+  const [readingSettings, setReadingSettings] = useState<ReadingSettings>({
+    fontSize: 'lg',
+    lineHeight: 'relaxed',
+    fontFamily: 'serif',
+  });
+  const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const touchStartX = useRef(0);
 
   useEffect(() => {
@@ -41,6 +49,11 @@ export default function App() {
     }
     setTheme(initialTheme);
     document.documentElement.className = initialTheme;
+
+    const savedSettings = localStorage.getItem('confession_reading_settings');
+    if (savedSettings) {
+        setReadingSettings(JSON.parse(savedSettings));
+    }
   }, []);
 
   const handleThemeChange = (newTheme: string) => {
@@ -48,6 +61,17 @@ export default function App() {
     localStorage.setItem('confession_theme', newTheme);
     document.documentElement.className = newTheme;
   };
+
+  const handleReadingSettingsChange = useCallback(<K extends keyof ReadingSettings>(key: K, value: ReadingSettings[K]) => {
+    const newSettings = { ...readingSettings, [key]: value };
+    setReadingSettings(newSettings);
+    localStorage.setItem('confession_reading_settings', JSON.stringify(newSettings));
+  }, [readingSettings]);
+
+  const handleOpenReadingSettings = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    settingsTriggerRef.current = event.currentTarget;
+    setIsReadingSettingsOpen(true);
+  }, []);
 
   const handleNavigateToReader = useCallback((index: number) => {
     setCurrentChapterIndex(index);
@@ -66,6 +90,7 @@ export default function App() {
   const handleDeleteAllData = useCallback(() => {
     localStorage.removeItem('confession_bookmarks');
     localStorage.removeItem('confession_theme');
+    localStorage.removeItem('confession_reading_settings');
     confessionData.forEach((_, index) => {
         localStorage.removeItem(`scroll_ch_${index}`);
     });
@@ -73,6 +98,7 @@ export default function App() {
     const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme';
     setTheme(defaultTheme);
     document.documentElement.className = defaultTheme;
+    setReadingSettings({ fontSize: 'lg', lineHeight: 'relaxed', fontFamily: 'serif' });
     setView('home');
   }, []);
 
@@ -331,6 +357,9 @@ export default function App() {
 
   const isFloatingNavVisible = view === 'reader' && (isMobile || isReaderMode);
   const isHeaderVisible = !isFloatingNavVisible;
+  
+  const readerClasses = `font-${readingSettings.fontFamily} text-${readingSettings.fontSize} leading-${readingSettings.lineHeight}`;
+
 
   return (
     <div className="flex flex-col min-h-screen font-sans">
@@ -345,6 +374,7 @@ export default function App() {
         onThemeChange={handleThemeChange}
         currentTheme={theme}
         onGoToDashboard={handleGoToDashboard}
+        onOpenReadingSettings={handleOpenReadingSettings}
       />
       
       {view === 'home' && <Home chapters={confessionData} onSelectChapter={handleNavigateToReader} />}
@@ -354,7 +384,7 @@ export default function App() {
           const noteCount = bookmarks.filter(b => b.note && b.note.trim() !== '').length;
           const stats = { readingProgress, bookmarkCount: bookmarks.length, noteCount };
           const handleExportData = () => {
-              const dataStr = JSON.stringify({ bookmarks }, null, 2);
+              const dataStr = JSON.stringify({ bookmarks, theme, readingSettings }, null, 2);
               const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
               const exportFileDefaultName = 'confession_data.json';
               const linkElement = document.createElement('a');
@@ -366,7 +396,7 @@ export default function App() {
       })()}
 
       {view === 'reader' && (
-        <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'}`}>
+        <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'} ${readerClasses}`}>
             <ConfessionViewer
                 chapter={confessionData[currentChapterIndex]}
                 onShowProof={handleShowProof}
@@ -398,6 +428,7 @@ export default function App() {
                     onOpenBookmarkList={handleOpenBookmarkList}
                     onThemeChange={handleThemeChange}
                     currentTheme={theme}
+                    onOpenReadingSettings={handleOpenReadingSettings}
                 />
             </div>
             {!isReaderMode && showGoToTop && (
@@ -447,6 +478,13 @@ export default function App() {
                 onSave={handleUpdateBookmark}
                 bookmark={editingBookmark}
                 confessionData={confessionData}
+            />
+            <ReadingSettingsPopover
+                isOpen={isReadingSettingsOpen}
+                onClose={() => setIsReadingSettingsOpen(false)}
+                settings={readingSettings}
+                onSettingChange={handleReadingSettingsChange}
+                triggerRef={settingsTriggerRef}
             />
         </>
       )}

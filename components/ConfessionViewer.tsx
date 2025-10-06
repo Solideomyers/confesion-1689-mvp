@@ -100,7 +100,7 @@ const ParagraphRenderer: React.FC<{
         </button>
       </div>
 
-      <p className="text-lg leading-relaxed font-serif text-muted-foreground pr-8">
+      <p className="text-muted-foreground pr-8">
         <span className="font-bold text-foreground pr-2">{paragraph.paragraph}.</span>
         {parts.map((part, index) => {
           const match = part.match(/^{([a-z])}$/);

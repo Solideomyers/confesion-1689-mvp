@@ -11,6 +11,7 @@ interface FloatingNavProps {
   onOpenBookmarkList: () => void;
   onThemeChange: (theme: string) => void;
   currentTheme: string;
+  onOpenReadingSettings: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const FloatingNav: React.FC<FloatingNavProps> = ({
@@ -22,7 +23,8 @@ const FloatingNav: React.FC<FloatingNavProps> = ({
   onToggleReaderMode,
   onOpenBookmarkList,
   onThemeChange,
-  currentTheme
+  currentTheme,
+  onOpenReadingSettings,
 }) => {
   return (
     <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-20">
@@ -57,6 +59,16 @@ const FloatingNav: React.FC<FloatingNavProps> = ({
           </svg>
         </button>
         <div className="w-px h-6 bg-border mx-1"></div>
+        <button
+          onClick={onOpenReadingSettings}
+          className="p-3 bg-transparent rounded-full hover:bg-accent transition-colors"
+          aria-label="Ajustes de lectura"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.884 5.036A9 9 0 0117.965 15h.015" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5a2 2 0 01-2-2h4a2 2 0 01-2 2zm0 0v.01" />
+          </svg>
+        </button>
         <button
             onClick={onToggleReaderMode}
             className="p-3 bg-transparent rounded-full hover:bg-accent transition-colors"

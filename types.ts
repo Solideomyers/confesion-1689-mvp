@@ -21,3 +21,9 @@ export interface Bookmark {
   id: string; // e.g., "confession-ch1-p2"
   note?: string;
 }
+
+export interface ReadingSettings {
+  fontSize: 'base' | 'lg' | 'xl' | '2xl';
+  lineHeight: 'normal' | 'relaxed' | 'loose';
+  fontFamily: 'serif' | 'sans';
+}
