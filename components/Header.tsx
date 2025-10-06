@@ -8,6 +8,7 @@ interface HeaderProps {
   onToggleReaderMode: () => void;
   onOpenChapterNav: () => void;
   onOpenBookmarkList: () => void;
+  onOpenHighlightList: () => void;
   isHeaderVisible: boolean;
   onGoHome: () => void;
   onThemeChange: (theme: string) => void;
@@ -21,7 +22,8 @@ const Header: React.FC<HeaderProps> = ({
   onSearchClick, 
   onToggleReaderMode, 
   onOpenChapterNav, 
-  onOpenBookmarkList, 
+  onOpenBookmarkList,
+  onOpenHighlightList,
   isHeaderVisible, 
   onGoHome,
   onThemeChange,
@@ -86,6 +88,21 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </button>
+
+              <button
+                onClick={onOpenHighlightList}
+                className="p-2 bg-card border border-border rounded-lg hover:bg-accent transition-colors"
+                aria-label="Ver resaltados"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    <path d="M12 22.2V12.55"></path>
+                    <path d="M15.24 6.27L20.2 3.78"></path>
+                    <path d="M21.56 11.11L14.4 15.33"></path>
+                    <path d="M8.76 6.27L3.8 3.78"></path>
+                    <path d="M2.44 11.11L9.6 15.33"></path>
                 </svg>
               </button>
             </>

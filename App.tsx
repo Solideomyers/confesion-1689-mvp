@@ -14,6 +14,7 @@ import NoteEditorModal from './components/NoteEditorModal';
 import Home from './components/Home';
 import Dashboard from './components/Dashboard';
 import ReadingSettingsPopover from './components/ReadingSettingsPopover';
+import HighlightList from './components/HighlightList';
 
 const defaultReadingSettings: ReadingSettings = {
   fontSize: 1.125,
@@ -35,6 +36,7 @@ export default function App() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [isBookmarkListOpen, setIsBookmarkListOpen] = useState(false);
+  const [isHighlightListOpen, setIsHighlightListOpen] = useState(false);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
@@ -207,6 +209,14 @@ export default function App() {
     });
   }, []);
   
+  const handleUpdateHighlight = useCallback((highlightId: string, newColor: Highlight['color']) => {
+    setHighlights(prev => {
+      const newHighlights = prev.map(h => h.id === highlightId ? { ...h, color: newColor } : h);
+      localStorage.setItem('confession_highlights', JSON.stringify(newHighlights));
+      return newHighlights;
+    });
+  }, []);
+  
   const handleDeleteHighlight = useCallback((highlightId: string) => {
     setHighlights(prev => {
       const newHighlights = prev.filter(h => h.id !== highlightId);
@@ -300,19 +310,23 @@ export default function App() {
     setIsBookmarkListOpen(false);
     setActiveBookmarkId(null);
   }, []);
+
+  const handleOpenHighlightList = useCallback(() => setIsHighlightListOpen(true), []);
+  const handleCloseHighlightList = useCallback(() => setIsHighlightListOpen(false), []);
   
-  const handleNavigateToBookmark = (bookmarkId: string) => {
-    const parts = bookmarkId.match(/ch(\d+)-p(\d+)/);
+  const handleNavigateToParagraph = (paragraphId: string) => {
+    const parts = paragraphId.match(/ch(\d+)-p(\d+)/);
     if (parts) {
       const chapterNumber = parseInt(parts[1], 10);
       const chapterIndex = confessionData.findIndex(ch => ch.chapter === chapterNumber);
       
       if (chapterIndex !== -1) {
         handleNavigateToReader(chapterIndex);
-        setScrollToParagraphId(bookmarkId);
+        setScrollToParagraphId(paragraphId);
       }
     }
     handleCloseBookmarkList();
+    handleCloseHighlightList();
   };
 
   useEffect(() => {
@@ -408,6 +422,7 @@ export default function App() {
         onOpenChapterNav={handleOpenChapterNav}
         isHeaderVisible={isHeaderVisible}
         onOpenBookmarkList={handleOpenBookmarkList}
+        onOpenHighlightList={handleOpenHighlightList}
         onGoHome={handleGoHome}
         onThemeChange={handleThemeChange}
         currentTheme={theme}
@@ -419,7 +434,6 @@ export default function App() {
       
       {view === 'dashboard' && (() => {
           const readingProgress = Math.round(((currentChapterIndex + 1) / confessionData.length) * 100);
-          // FIX: Define bookmarkCount before using it in the stats object.
           const bookmarkCount = bookmarks.length;
           const noteCount = bookmarks.filter(b => b.note && b.note.trim() !== '').length;
           const highlightCount = highlights.length;
@@ -449,6 +463,7 @@ export default function App() {
                 onOpenNoteEditor={handleOpenNoteEditor}
                 highlights={highlights}
                 onAddHighlight={handleAddHighlight}
+                onUpdateHighlight={handleUpdateHighlight}
                 onDeleteHighlight={handleDeleteHighlight}
             />
             {isHeaderVisible && (
@@ -473,6 +488,7 @@ export default function App() {
                     onOpenChapterNav={handleOpenChapterNav}
                     onToggleReaderMode={handleToggleReaderMode}
                     onOpenBookmarkList={handleOpenBookmarkList}
+                    onOpenHighlightList={handleOpenHighlightList}
                     onThemeChange={handleThemeChange}
                     currentTheme={theme}
                     onOpenReadingSettings={handleOpenReadingSettings}
@@ -514,10 +530,18 @@ export default function App() {
                 onClose={handleCloseBookmarkList}
                 bookmarks={bookmarks}
                 confessionData={confessionData}
-                onNavigate={handleNavigateToBookmark}
+                onNavigate={handleNavigateToParagraph}
                 onDelete={handleDeleteBookmark}
                 onUpdate={handleUpdateBookmark}
                 activeBookmarkId={activeBookmarkId}
+            />
+             <HighlightList
+                isOpen={isHighlightListOpen}
+                onClose={handleCloseHighlightList}
+                highlights={highlights}
+                confessionData={confessionData}
+                onNavigate={handleNavigateToParagraph}
+                onDelete={handleDeleteHighlight}
             />
             <NoteEditorModal
                 isOpen={!!editingBookmark}

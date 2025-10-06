@@ -17,6 +17,8 @@ El objetivo es minimizar la fricción y mantener al usuario inmerso en su estudi
 Ofrecer herramientas de estudio más robustas que las notas y marcadores actuales.
 
 - [x] **Resaltado de Texto (Highlighting):** Permitir al usuario seleccionar texto y resaltarlo en varios colores. Los resaltados se guardarán y gestionarán junto a los marcadores.
+    - [x] **Editar color de resaltado:** Permitir al usuario cambiar el color de un resaltado existente.
+    - [x] **Panel de resaltados:** Centralizar todos los resaltados en una lista para fácil acceso y gestión.
 - [ ] **Etiquetas (Tagging) para Organización:** Permitir añadir etiquetas a marcadores y notas (ej: `#soteriología`, `#pactos`). Esto habilitará un sistema de filtrado en la lista de marcadores y notas.
 
 ## 3. Búsqueda Semántica con Inteligencia Artificial (Gemini)

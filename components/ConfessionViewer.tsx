@@ -10,18 +10,20 @@ interface ConfessionViewerProps {
   onOpenNoteEditor: (paragraphId: string) => void;
   highlights: Highlight[];
   onAddHighlight: (highlight: Highlight) => void;
+  onUpdateHighlight: (highlightId: string, color: Highlight['color']) => void;
   onDeleteHighlight: (highlightId: string) => void;
 }
 
-const HighlightColorButton: React.FC<{ color: 'yellow' | 'pink' | 'blue' | 'green', onClick: () => void }> = ({ color, onClick }) => {
+const HighlightColorButton: React.FC<{ color: Highlight['color'], onClick: () => void, size?: 'sm' | 'md' }> = ({ color, onClick, size = 'md' }) => {
     const colorClasses = {
         yellow: 'bg-yellow-300/70 hover:bg-yellow-300',
         pink: 'bg-pink-300/70 hover:bg-pink-300',
         blue: 'bg-blue-300/70 hover:bg-blue-300',
         green: 'bg-green-300/70 hover:bg-green-300',
     };
+    const sizeClasses = size === 'sm' ? 'w-6 h-6' : 'w-7 h-7';
     return (
-        <button onClick={onClick} className={`w-7 h-7 rounded-full border border-border transition-transform hover:scale-110 ${colorClasses[color]}`}/>
+        <button onClick={onClick} className={`${sizeClasses} rounded-full border border-border transition-transform hover:scale-110 ${colorClasses[color]}`}/>
     );
 };
 
@@ -36,11 +38,13 @@ const ParagraphRenderer: React.FC<{
   highlights: Highlight[];
   onToggleBookmark: (paragraphId: string) => void;
   onOpenNoteEditor: (paragraphId: string) => void;
+  onUpdateHighlight: (highlightId: string, color: Highlight['color']) => void;
   onDeleteHighlight: (highlightId: string) => void;
-}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, highlights, onToggleBookmark, onOpenNoteEditor, onDeleteHighlight }) => {
+}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, highlights, onToggleBookmark, onOpenNoteEditor, onUpdateHighlight, onDeleteHighlight }) => {
   const [isVisible, setIsVisible] = useState(false);
   const paragraphRef = useRef<HTMLDivElement | null>(null);
-  const [deletingHighlightId, setDeletingHighlightId] = useState<string | null>(null);
+  const [editingHighlight, setEditingHighlight] = useState<{ highlight: Highlight, target: HTMLElement } | null>(null);
+  const editPopoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -50,27 +54,25 @@ const ParagraphRenderer: React.FC<{
           observer.unobserve(entry.target);
         }
       },
-      {
-        rootMargin: '0px',
-        threshold: 0.05,
-      }
+      { rootMargin: '0px', threshold: 0.05 }
     );
 
     const currentRef = paragraphRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-    
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
+    if (currentRef) observer.observe(currentRef);
+    return () => { if (currentRef) observer.unobserve(currentRef); };
+  }, []);
+  
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (editPopoverRef.current && !editPopoverRef.current.contains(event.target as Node)) {
+        setEditingHighlight(null);
       }
     };
-  }, []);
+    if (editingHighlight) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editingHighlight]);
 
-  const findProof = (refChar: string) => {
-    return paragraph.proofs.find(p => p.ref === refChar);
-  };
+  const findProof = (refChar: string) => paragraph.proofs.find(p => p.ref === refChar);
   
   const paragraphId = `confession-ch${chapterNumber}-p${paragraph.paragraph}`;
   const isBookmarked = bookmarks.some(b => b.id === paragraphId);
@@ -79,61 +81,37 @@ const ParagraphRenderer: React.FC<{
   const renderContent = () => {
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
-
-    const combinedItems = [...paragraphHighlights];
     const textWithPlaceholders = paragraph.text.replace(/{([a-z])}/g, ' {$1} ');
     
-    combinedItems.forEach((h, highlightIndex) => {
-        if (h.startOffset > lastIndex) {
-            parts.push(textWithPlaceholders.substring(lastIndex, h.startOffset));
-        }
+    paragraphHighlights.forEach(h => {
+        if (h.startOffset > lastIndex) parts.push(textWithPlaceholders.substring(lastIndex, h.startOffset));
         
         const highlightColorClasses = {
-            yellow: 'bg-yellow-300/40',
-            pink: 'bg-pink-300/40',
-            blue: 'bg-blue-300/40',
-            green: 'bg-green-300/40',
+            yellow: 'bg-yellow-300/40', pink: 'bg-pink-300/40',
+            blue: 'bg-blue-300/40', green: 'bg-green-300/40',
         };
 
         parts.push(
             <mark
                 key={h.id}
                 className={`relative rounded-sm px-0.5 cursor-pointer ${highlightColorClasses[h.color]}`}
-                onClick={() => setDeletingHighlightId(h.id)}
+                onClick={(e) => { e.stopPropagation(); setEditingHighlight({ highlight: h, target: e.currentTarget }); }}
             >
                 {h.text}
-                {deletingHighlightId === h.id && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteHighlight(h.id);
-                        setDeletingHighlightId(null);
-                      }}
-                      className="absolute -top-7 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground p-1 rounded-full shadow-lg"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                )}
             </mark>
         );
         lastIndex = h.endOffset;
     });
 
-    if (lastIndex < textWithPlaceholders.length) {
-        parts.push(textWithPlaceholders.substring(lastIndex));
-    }
+    if (lastIndex < textWithPlaceholders.length) parts.push(textWithPlaceholders.substring(lastIndex));
     
-    // Process for Scripture proofs
     return parts.flat().map((part, index) => {
         if (typeof part !== 'string') return part;
 
         return part.split(/({[a-z]})/).map((textSegment, i) => {
             const match = textSegment.match(/^{([a-z])}$/);
             if (match) {
-                const refChar = match[1];
-                const proof = findProof(refChar);
+                const proof = findProof(match[1]);
                 if (proof) {
                     return (
                         <sup key={`${index}-${i}`} className="mx-0.5">
@@ -142,9 +120,7 @@ const ParagraphRenderer: React.FC<{
                                 onMouseEnter={(e) => onMouseEnterProof(proof, e)}
                                 onMouseLeave={onMouseLeaveProof}
                                 className="font-bold text-primary hover:text-primary/90 text-base"
-                            >
-                                {refChar}
-                            </button>
+                            >{match[1]}</button>
                         </sup>
                     );
                 }
@@ -165,6 +141,31 @@ const ParagraphRenderer: React.FC<{
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
+       {editingHighlight && (() => {
+            const rect = editingHighlight.target.getBoundingClientRect();
+            let top = rect.top + window.scrollY - 52;
+            let left = rect.left + window.scrollX + rect.width / 2;
+            return (
+                <div
+                    ref={editPopoverRef}
+                    className="fixed z-50 bg-card border border-border rounded-full shadow-lg flex items-center p-1.5 gap-1.5"
+                    style={{ top: `${top}px`, left: `${left}px`, transform: 'translateX(-50%)' }}
+                >
+                    {(['yellow', 'pink', 'blue', 'green'] as const).map(color => (
+                        <HighlightColorButton key={color} color={color} size="sm" onClick={() => { onUpdateHighlight(editingHighlight.highlight.id, color); setEditingHighlight(null); }} />
+                    ))}
+                    <div className="w-px h-5 bg-border mx-1"></div>
+                    <button
+                      onClick={() => { onDeleteHighlight(editingHighlight.highlight.id); setEditingHighlight(null); }}
+                      className="p-1 text-destructive-foreground hover:bg-destructive/20 rounded-full"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                </div>
+            );
+       })()}
        <div className="absolute top-0 right-0 flex items-center space-x-1 p-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-10">
         {isBookmarked && (
           <button
@@ -204,7 +205,7 @@ const ParagraphRenderer: React.FC<{
   );
 };
 
-const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProof, bookmarks, onToggleBookmark, onOpenNoteEditor, highlights, onAddHighlight, onDeleteHighlight }) => {
+const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProof, bookmarks, onToggleBookmark, onOpenNoteEditor, highlights, onAddHighlight, onUpdateHighlight, onDeleteHighlight }) => {
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     content: Array<{ ref: string; text?: string; }>;
@@ -307,38 +308,28 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
-    const selectedText = range.toString();
-    
-    const paragraphElement = (range.commonAncestorContainer.parentElement as HTMLElement)?.closest<HTMLElement>('[data-paragraph-number]');
-    if (!paragraphElement || !selectedText.trim()) return;
+    let selectedText = range.toString();
+    if (!selectedText.trim()) return;
+
+    const paragraphElement = (range.commonAncestorContainer.parentElement as HTMLElement)?.closest<HTMLElement>('[id^="confession-ch"]');
+    if (!paragraphElement) return;
 
     const paragraphId = paragraphElement.id;
     const contentContainer = paragraphElement.querySelector('p');
     if (!contentContainer) return;
     
-    const getOffset = (node: Node, offset: number): number => {
-        let textOffset = 0;
-        const walker = document.createTreeWalker(contentContainer, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
-        let currentNode: Node | null;
-
-        while ((currentNode = walker.nextNode())) {
-            if (currentNode === node) {
-                return textOffset + offset;
-            }
-            if (currentNode.nodeType === Node.TEXT_NODE) {
-                textOffset += currentNode.textContent?.length || 0;
-            } else if (currentNode.nodeName === 'SUP') {
-                const proofRef = (currentNode as HTMLElement).textContent;
-                if (proofRef) {
-                   textOffset += `{${proofRef}}`.length;
-                }
-            }
-        }
-        return textOffset + offset;
+    // This function calculates offset relative to the start of the <p> element's text content
+    const getOffsetWithinParagraph = (container: Node, offset: number): number => {
+      let accumulatedOffset = 0;
+      const range = document.createRange();
+      range.selectNodeContents(contentContainer);
+      range.setEnd(container, offset);
+      accumulatedOffset = range.toString().replace(/{[a-z]}/g, '').length;
+      return accumulatedOffset;
     };
 
-    const startOffset = getOffset(range.startContainer, range.startOffset);
-    const endOffset = startOffset + selectedText.length;
+    const startOffset = getOffsetWithinParagraph(range.startContainer, range.startOffset);
+    const endOffset = startOffset + selectedText.replace(/{[a-z]}/g, '').length;
     
     const newHighlight: Highlight = {
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -537,6 +528,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
             highlights={highlights}
             onToggleBookmark={onToggleBookmark}
             onOpenNoteEditor={onOpenNoteEditor}
+            onUpdateHighlight={onUpdateHighlight}
             onDeleteHighlight={onDeleteHighlight}
           />
         ))}
