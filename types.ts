@@ -26,4 +26,5 @@ export interface ReadingSettings {
   fontSize: number; // in rem
   lineHeight: 'normal' | 'relaxed' | 'loose';
   fontFamily: 'serif' | 'sans' | 'baskerville' | 'lora';
+  textAlign: 'justify' | 'left';
 }

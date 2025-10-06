@@ -15,6 +15,13 @@ import Home from './components/Home';
 import Dashboard from './components/Dashboard';
 import ReadingSettingsPopover from './components/ReadingSettingsPopover';
 
+const defaultReadingSettings: ReadingSettings = {
+  fontSize: 1.125,
+  lineHeight: 'relaxed',
+  fontFamily: 'serif',
+  textAlign: 'justify',
+};
+
 export default function App() {
   const [view, setView] = useState<'home' | 'reader' | 'dashboard'>('home');
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
@@ -32,11 +39,7 @@ export default function App() {
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [theme, setTheme] = useState('dark-matter');
   const [isReadingSettingsOpen, setIsReadingSettingsOpen] = useState(false);
-  const [readingSettings, setReadingSettings] = useState<ReadingSettings>({
-    fontSize: 1.125,
-    lineHeight: 'relaxed',
-    fontFamily: 'serif',
-  });
+  const [readingSettings, setReadingSettings] = useState<ReadingSettings>(defaultReadingSettings);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const touchStartX = useRef(0);
 
@@ -52,7 +55,7 @@ export default function App() {
 
     const savedSettings = localStorage.getItem('confession_reading_settings');
     if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
+        const parsed = { ...defaultReadingSettings, ...JSON.parse(savedSettings) };
         // Migration logic for old string-based font sizes
         if (typeof parsed.fontSize === 'string') {
             const sizeMap: Record<string, number> = { base: 1, lg: 1.125, xl: 1.25, '2xl': 1.5 };
@@ -109,7 +112,7 @@ export default function App() {
     const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme';
     setTheme(defaultTheme);
     document.documentElement.className = defaultTheme;
-    setReadingSettings({ fontSize: 1.125, lineHeight: 'relaxed', fontFamily: 'serif' });
+    setReadingSettings(defaultReadingSettings);
     setView('home');
   }, []);
 
@@ -369,7 +372,7 @@ export default function App() {
   const isFloatingNavVisible = view === 'reader' && (isMobile || isReaderMode);
   const isHeaderVisible = !isFloatingNavVisible;
   
-  const readerClasses = `font-${readingSettings.fontFamily} leading-${readingSettings.lineHeight}`;
+  const readerClasses = `font-${readingSettings.fontFamily} leading-${readingSettings.lineHeight} text-${readingSettings.textAlign}`;
 
 
   return (

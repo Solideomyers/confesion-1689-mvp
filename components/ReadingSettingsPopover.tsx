@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import type { ReadingSettings } from '../types';
 
@@ -9,28 +10,33 @@ interface ReadingSettingsPopoverProps {
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-type LineHeight = ReadingSettings['lineHeight'];
-type FontFamily = ReadingSettings['fontFamily'];
+type SettingKey = keyof ReadingSettings;
+type SettingValue = ReadingSettings[SettingKey];
 
-const lineHeights: { value: LineHeight; label: string }[] = [
+const lineHeights: { value: ReadingSettings['lineHeight']; label: string }[] = [
   { value: 'normal', label: 'Compacto' },
   { value: 'relaxed', label: 'Normal' },
   { value: 'loose', label: 'Amplio' },
 ];
 
-const fontFamilies: { value: FontFamily; label: string }[] = [
+const textAligns: { value: ReadingSettings['textAlign']; label: string }[] = [
+  { value: 'justify', label: 'Justificado' },
+  { value: 'left', label: 'Izquierda' },
+];
+
+const fontFamilies: { value: ReadingSettings['fontFamily']; label: string }[] = [
   { value: 'serif', label: 'Merriweather' },
   { value: 'sans', label: 'Inter' },
   { value: 'baskerville', label: 'Baskerville' },
   { value: 'lora', label: 'Lora' },
 ];
 
-const SettingButton = <T extends string>({ value, label, currentValue, onClick }: { value: T, label: string, currentValue: T, onClick: (value: T) => void }) => (
+const SettingButton = <T extends SettingValue>({ value, label, currentValue, onClick }: { value: T, label: string, currentValue: T, onClick: (value: T) => void }) => (
   <button
     onClick={() => onClick(value)}
     className={`w-full px-3 py-1.5 text-sm rounded-md transition-colors ${
       currentValue === value
-        ? 'bg-primary text-primary-foreground'
+        ? 'bg-primary text-primary-foreground font-semibold'
         : 'bg-muted/50 hover:bg-muted text-muted-foreground'
     }`}
   >
@@ -63,13 +69,13 @@ const ReadingSettingsPopover: React.FC<ReadingSettingsPopoverProps> = ({ isOpen,
   }, [isOpen, onClose, triggerRef]);
 
   useEffect(() => {
-    if (isOpen && triggerRef.current) {
+    if (isOpen && triggerRef.current && popoverRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
-      const popoverHeight = 280; // Adjusted height for new layout
+      const popoverRect = popoverRef.current.getBoundingClientRect();
       
       let top = triggerRect.bottom + 8;
-      if (triggerRect.top > window.innerHeight / 2) { 
-        top = triggerRect.top - popoverHeight - 8;
+      if (triggerRect.top > window.innerHeight / 2 && (triggerRect.top - popoverRect.height - 8 > 0)) { 
+        top = triggerRect.top - popoverRect.height - 8;
       }
 
       const left = triggerRect.left + triggerRect.width / 2;
@@ -82,12 +88,12 @@ const ReadingSettingsPopover: React.FC<ReadingSettingsPopoverProps> = ({ isOpen,
   return (
     <div
       ref={popoverRef}
-      className="fixed z-50 w-64 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg p-4"
+      className="fixed z-50 w-72 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg p-4"
       style={{ top: `${position.top}px`, left: `${position.left}px`, transform: 'translateX(-50%)' }}
     >
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Tamaño de Fuente</label>
+          <label className="block text-sm font-semibold text-muted-foreground mb-3">Tamaño de Fuente</label>
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold">A</span>
             <input
@@ -102,16 +108,27 @@ const ReadingSettingsPopover: React.FC<ReadingSettingsPopoverProps> = ({ isOpen,
             <span className="text-lg font-semibold">A</span>
           </div>
         </div>
+        
         <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Interlineado</label>
-          <div className="flex items-center justify-between gap-2">
+          <label className="block text-sm font-semibold text-muted-foreground mb-3">Interlineado</label>
+          <div className="grid grid-cols-3 gap-2">
              {lineHeights.map(lh => (
               <SettingButton key={lh.value} {...lh} currentValue={settings.lineHeight} onClick={(v) => onSettingChange('lineHeight', v)} />
             ))}
           </div>
         </div>
+
         <div>
-          <label className="block text-sm font-medium text-muted-foreground mb-2">Tipografía</label>
+          <label className="block text-sm font-semibold text-muted-foreground mb-3">Alineación</label>
+          <div className="grid grid-cols-2 gap-2">
+             {textAligns.map(ta => (
+              <SettingButton key={ta.value} {...ta} currentValue={settings.textAlign} onClick={(v) => onSettingChange('textAlign', v)} />
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-semibold text-muted-foreground mb-3">Tipografía</label>
           <div className="grid grid-cols-2 gap-2">
             {fontFamilies.map(ff => (
               <SettingButton key={ff.value} {...ff} currentValue={settings.fontFamily} onClick={(v) => onSettingChange('fontFamily', v)} />
