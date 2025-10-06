@@ -22,6 +22,15 @@ export interface Bookmark {
   note?: string;
 }
 
+export interface Highlight {
+  id: string;
+  paragraphId: string;
+  text: string;
+  color: 'yellow' | 'pink' | 'blue' | 'green';
+  startOffset: number;
+  endOffset: number;
+}
+
 export interface ReadingSettings {
   fontSize: number; // in rem
   lineHeight: 'normal' | 'relaxed' | 'loose';

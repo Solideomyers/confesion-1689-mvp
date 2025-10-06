@@ -1,6 +1,6 @@
 
 import React, { memo, useState, useRef, useEffect } from 'react';
-import type { Chapter, Paragraph, ScriptureProof, Bookmark } from '../types';
+import type { Chapter, Paragraph, ScriptureProof, Bookmark, Highlight } from '../types';
 
 interface ConfessionViewerProps {
   chapter: Chapter;
@@ -8,7 +8,22 @@ interface ConfessionViewerProps {
   bookmarks: Bookmark[];
   onToggleBookmark: (paragraphId: string) => void;
   onOpenNoteEditor: (paragraphId: string) => void;
+  highlights: Highlight[];
+  onAddHighlight: (highlight: Highlight) => void;
+  onDeleteHighlight: (highlightId: string) => void;
 }
+
+const HighlightColorButton: React.FC<{ color: 'yellow' | 'pink' | 'blue' | 'green', onClick: () => void }> = ({ color, onClick }) => {
+    const colorClasses = {
+        yellow: 'bg-yellow-300/70 hover:bg-yellow-300',
+        pink: 'bg-pink-300/70 hover:bg-pink-300',
+        blue: 'bg-blue-300/70 hover:bg-blue-300',
+        green: 'bg-green-300/70 hover:bg-green-300',
+    };
+    return (
+        <button onClick={onClick} className={`w-7 h-7 rounded-full border border-border transition-transform hover:scale-110 ${colorClasses[color]}`}/>
+    );
+};
 
 const ParagraphRenderer: React.FC<{
   paragraph: Paragraph;
@@ -18,11 +33,14 @@ const ParagraphRenderer: React.FC<{
   chapterNumber: number;
   chapterTitle: string;
   bookmarks: Bookmark[];
+  highlights: Highlight[];
   onToggleBookmark: (paragraphId: string) => void;
   onOpenNoteEditor: (paragraphId: string) => void;
-}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, onToggleBookmark, onOpenNoteEditor }) => {
+  onDeleteHighlight: (highlightId: string) => void;
+}> = ({ paragraph, onShowProof, onMouseEnterProof, onMouseLeaveProof, chapterNumber, chapterTitle, bookmarks, highlights, onToggleBookmark, onOpenNoteEditor, onDeleteHighlight }) => {
   const [isVisible, setIsVisible] = useState(false);
   const paragraphRef = useRef<HTMLDivElement | null>(null);
+  const [deletingHighlightId, setDeletingHighlightId] = useState<string | null>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -42,7 +60,7 @@ const ParagraphRenderer: React.FC<{
     if (currentRef) {
       observer.observe(currentRef);
     }
-
+    
     return () => {
       if (currentRef) {
         observer.unobserve(currentRef);
@@ -50,15 +68,92 @@ const ParagraphRenderer: React.FC<{
     };
   }, []);
 
-  const parts = paragraph.text.split(/({[a-z]})/);
-
   const findProof = (refChar: string) => {
     return paragraph.proofs.find(p => p.ref === refChar);
   };
-
+  
   const paragraphId = `confession-ch${chapterNumber}-p${paragraph.paragraph}`;
   const isBookmarked = bookmarks.some(b => b.id === paragraphId);
+  const paragraphHighlights = highlights.filter(h => h.paragraphId === paragraphId).sort((a, b) => a.startOffset - b.startOffset);
 
+  const renderContent = () => {
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    const combinedItems = [...paragraphHighlights];
+    const textWithPlaceholders = paragraph.text.replace(/{([a-z])}/g, ' {$1} ');
+    
+    combinedItems.forEach((h, highlightIndex) => {
+        if (h.startOffset > lastIndex) {
+            parts.push(textWithPlaceholders.substring(lastIndex, h.startOffset));
+        }
+        
+        const highlightColorClasses = {
+            yellow: 'bg-yellow-300/40',
+            pink: 'bg-pink-300/40',
+            blue: 'bg-blue-300/40',
+            green: 'bg-green-300/40',
+        };
+
+        parts.push(
+            <mark
+                key={h.id}
+                className={`relative rounded-sm px-0.5 cursor-pointer ${highlightColorClasses[h.color]}`}
+                onClick={() => setDeletingHighlightId(h.id)}
+            >
+                {h.text}
+                {deletingHighlightId === h.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteHighlight(h.id);
+                        setDeletingHighlightId(null);
+                      }}
+                      className="absolute -top-7 left-1/2 -translate-x-1/2 bg-destructive text-destructive-foreground p-1 rounded-full shadow-lg"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                )}
+            </mark>
+        );
+        lastIndex = h.endOffset;
+    });
+
+    if (lastIndex < textWithPlaceholders.length) {
+        parts.push(textWithPlaceholders.substring(lastIndex));
+    }
+    
+    // Process for Scripture proofs
+    return parts.flat().map((part, index) => {
+        if (typeof part !== 'string') return part;
+
+        return part.split(/({[a-z]})/).map((textSegment, i) => {
+            const match = textSegment.match(/^{([a-z])}$/);
+            if (match) {
+                const refChar = match[1];
+                const proof = findProof(refChar);
+                if (proof) {
+                    return (
+                        <sup key={`${index}-${i}`} className="mx-0.5">
+                            <button
+                                onClick={() => onShowProof(proof)}
+                                onMouseEnter={(e) => onMouseEnterProof(proof, e)}
+                                onMouseLeave={onMouseLeaveProof}
+                                className="font-bold text-primary hover:text-primary/90 text-base"
+                            >
+                                {refChar}
+                            </button>
+                        </sup>
+                    );
+                }
+            }
+            return <React.Fragment key={`${index}-${i}`}>{textSegment.replace(/ {([a-z])} /g, '{$1}')}</React.Fragment>;
+        });
+    });
+  };
+  
   return (
     <div
       id={paragraphId}
@@ -99,37 +194,17 @@ const ParagraphRenderer: React.FC<{
           )}
         </button>
       </div>
-
-      <p className="text-muted-foreground pr-8">
-        <span className="font-bold text-foreground pr-2">{paragraph.paragraph}.</span>
-        {parts.map((part, index) => {
-          const match = part.match(/^{([a-z])}$/);
-          if (match) {
-            const refChar = match[1];
-            const proof = findProof(refChar);
-            if (proof) {
-              return (
-                <sup key={index} className="mx-0.5">
-                  <button
-                    onClick={() => onShowProof(proof)}
-                    onMouseEnter={(e) => onMouseEnterProof(proof, e)}
-                    onMouseLeave={onMouseLeaveProof}
-                    className="font-bold text-primary hover:text-primary/90 text-base"
-                  >
-                    {refChar}
-                  </button>
-                </sup>
-              );
-            }
-          }
-          return <span key={index}>{part}</span>;
-        })}
-      </p>
+      <div className="flex">
+        <span className="font-bold text-foreground pr-2 text-muted-foreground">{paragraph.paragraph}.</span>
+        <p className="text-muted-foreground pr-8">
+            {renderContent()}
+        </p>
+      </div>
     </div>
   );
 };
 
-const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProof, bookmarks, onToggleBookmark, onOpenNoteEditor }) => {
+const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProof, bookmarks, onToggleBookmark, onOpenNoteEditor, highlights, onAddHighlight, onDeleteHighlight }) => {
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     content: Array<{ ref: string; text?: string; }>;
@@ -143,9 +218,6 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     top: number;
     left: number;
     isCopied: boolean;
-    chapterNumber?: string;
-    chapterTitle?: string;
-    paragraphNumber?: string;
   }>({ visible: false, top: 0, left: 0, isCopied: false });
 
   const hideTooltipTimer = useRef<number | null>(null);
@@ -172,17 +244,12 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
                 }
 
                 const left = rect.left + window.scrollX + (rect.width / 2);
-                
-                const { chapterNumber, chapterTitle, paragraphNumber } = (targetParagraph as HTMLElement).dataset;
-                
+                                
                 setSelectionToolbar({
                     visible: true,
                     top: top,
                     left: left,
                     isCopied: false,
-                    chapterNumber,
-                    chapterTitle,
-                    paragraphNumber
                 });
             }
         }
@@ -205,49 +272,85 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
   
   const handleCopySelection = async () => {
     const selection = window.getSelection();
-    if (selection) {
-      const selectedText = selection.toString();
-      const { chapterNumber, chapterTitle, paragraphNumber } = selectionToolbar;
-      const isPreface = chapterNumber === '0';
-  
-      // Plain text version with markdown for italics
-      let plainReference = `(*2CFL-1689*`;
-      if (isPreface) {
-        plainReference += `, ${chapterTitle}`;
-      } else {
-        plainReference += `, Cap. ${chapterNumber}: ${chapterTitle}`;
-      }
-      plainReference += `, Párrafo ${paragraphNumber})`;
-      const textToCopy = `«${selectedText}»\n\n${plainReference}`;
-  
-      // HTML version for rich text editors
-      let htmlReference = `(<i>2CFL-1689</i>`;
-      if (isPreface) {
-        htmlReference += `, ${chapterTitle}`;
-      } else {
-        htmlReference += `, Cap. ${chapterNumber}: ${chapterTitle}`;
-      }
-      htmlReference += `, Párrafo ${paragraphNumber})`;
-      const htmlToCopy = `<p>«${selectedText}»</p><p>${htmlReference}</p>`;
-  
-      try {
-        // Use the Clipboard API to write both plain text and HTML
-        const blobHtml = new Blob([htmlToCopy], { type: 'text/html' });
-        const blobText = new Blob([textToCopy], { type: 'text/plain' });
-        const clipboardItem = new ClipboardItem({
-          'text/html': blobHtml,
-          'text/plain': blobText,
-        });
-        await navigator.clipboard.write([clipboardItem]);
-  
-        setSelectionToolbar(prev => ({ ...prev, isCopied: true }));
-        setTimeout(() => {
-          setSelectionToolbar(prev => ({ ...prev, isCopied: false, visible: false }));
-        }, 2000);
-      } catch (err) {
-        console.error('Failed to copy text: ', err);
-      }
+    if (!selection) return;
+
+    const targetParagraph = (selection.anchorNode?.parentElement as HTMLElement)?.closest('[data-paragraph-number]');
+    if (!targetParagraph) return;
+
+    const { chapterNumber, chapterTitle, paragraphNumber } = (targetParagraph as HTMLElement).dataset;
+    const selectedText = selection.toString();
+    const isPreface = chapterNumber === '0';
+
+    // Plain text version
+    let plainReference = `(*2CFL-1689*, ${isPreface ? chapterTitle : `Cap. ${chapterNumber}: ${chapterTitle}`}, Párrafo ${paragraphNumber})`;
+    const textToCopy = `«${selectedText}»\n\n${plainReference}`;
+
+    // HTML version
+    let htmlReference = `(<i>2CFL-1689</i>, ${isPreface ? chapterTitle : `Cap. ${chapterNumber}: ${chapterTitle}`}, Párrafo ${paragraphNumber})`;
+    const htmlToCopy = `<p>«${selectedText}»</p><p>${htmlReference}</p>`;
+
+    try {
+      const blobHtml = new Blob([htmlToCopy], { type: 'text/html' });
+      const blobText = new Blob([textToCopy], { type: 'text/plain' });
+      const clipboardItem = new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText });
+      await navigator.clipboard.write([clipboardItem]);
+
+      setSelectionToolbar(prev => ({ ...prev, isCopied: true }));
+      setTimeout(() => setSelectionToolbar({ visible: false, top: 0, left: 0, isCopied: false }), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
     }
+  };
+  
+  const handleHighlight = (color: 'yellow' | 'pink' | 'blue' | 'green') => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = range.toString();
+    
+    const paragraphElement = (range.commonAncestorContainer.parentElement as HTMLElement)?.closest<HTMLElement>('[data-paragraph-number]');
+    if (!paragraphElement || !selectedText.trim()) return;
+
+    const paragraphId = paragraphElement.id;
+    const contentContainer = paragraphElement.querySelector('p');
+    if (!contentContainer) return;
+    
+    const getOffset = (node: Node, offset: number): number => {
+        let textOffset = 0;
+        const walker = document.createTreeWalker(contentContainer, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
+        let currentNode: Node | null;
+
+        while ((currentNode = walker.nextNode())) {
+            if (currentNode === node) {
+                return textOffset + offset;
+            }
+            if (currentNode.nodeType === Node.TEXT_NODE) {
+                textOffset += currentNode.textContent?.length || 0;
+            } else if (currentNode.nodeName === 'SUP') {
+                const proofRef = (currentNode as HTMLElement).textContent;
+                if (proofRef) {
+                   textOffset += `{${proofRef}}`.length;
+                }
+            }
+        }
+        return textOffset + offset;
+    };
+
+    const startOffset = getOffset(range.startContainer, range.startOffset);
+    const endOffset = startOffset + selectedText.length;
+    
+    const newHighlight: Highlight = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        paragraphId,
+        text: selectedText,
+        color,
+        startOffset,
+        endOffset,
+    };
+    onAddHighlight(newHighlight);
+    setSelectionToolbar(prev => ({...prev, visible: false}));
+    selection.removeAllRanges();
   };
 
   const handleMouseEnterProof = (proof: ScriptureProof, e: React.MouseEvent<HTMLButtonElement>) => {
@@ -263,18 +366,12 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
     }));
 
     const viewportWidth = window.innerWidth;
-    const tooltipMaxWidth = 352; // Corresponds to max-w-sm (22rem) with some buffer
-    const PADDING = 16; // 1rem padding from viewport edges
+    const tooltipMaxWidth = 352;
+    const PADDING = 16;
 
     let left = rect.left + rect.width / 2;
-
-    if (left - tooltipMaxWidth / 2 < PADDING) {
-      left = tooltipMaxWidth / 2 + PADDING;
-    }
-
-    if (left + tooltipMaxWidth / 2 > viewportWidth - PADDING) {
-      left = viewportWidth - tooltipMaxWidth / 2 - PADDING;
-    }
+    if (left - tooltipMaxWidth / 2 < PADDING) left = tooltipMaxWidth / 2 + PADDING;
+    if (left + tooltipMaxWidth / 2 > viewportWidth - PADDING) left = viewportWidth - tooltipMaxWidth / 2 - PADDING;
     
     setExpandedVerses(new Set());
     setTooltip({
@@ -306,9 +403,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       const textToCopy = `"${item.text}" (${item.ref})`;
       await navigator.clipboard.writeText(textToCopy);
       setCopiedVerseIndex(index);
-      setTimeout(() => {
-        setCopiedVerseIndex(prev => prev === index ? null : prev);
-      }, 2000);
+      setTimeout(() => setCopiedVerseIndex(prev => prev === index ? null : prev), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
     }
@@ -317,21 +412,15 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
   const handleToggleVerse = (index: number) => {
     setExpandedVerses(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
-      }
+      if (newSet.has(index)) newSet.delete(index);
+      else newSet.add(index);
       return newSet;
     });
   };
   
   const getCopyButtonClassName = (index: number) => {
     const baseClasses = "absolute top-2 right-2 p-1 rounded-md text-muted-foreground focus:opacity-100 transition-opacity";
-    if (copiedVerseIndex === index) {
-      return `${baseClasses} opacity-100`;
-    }
-    return `${baseClasses} opacity-0 group-hover:opacity-100`;
+    return copiedVerseIndex === index ? `${baseClasses} opacity-100` : `${baseClasses} opacity-0 group-hover:opacity-100`;
   };
 
   return (
@@ -339,32 +428,32 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
        {selectionToolbar.visible && (
         <div
           ref={toolbarRef}
-          className="fixed z-50 bg-card border border-border rounded-lg shadow-lg flex items-center transition-opacity"
+          className="fixed z-50 bg-card border border-border rounded-full shadow-lg flex items-center p-1.5 gap-1.5 transition-opacity"
           style={{
             top: `${selectionToolbar.top}px`,
             left: `${selectionToolbar.left}px`,
             transform: 'translateX(-50%)',
           }}
         >
+          <HighlightColorButton color="yellow" onClick={() => handleHighlight('yellow')} />
+          <HighlightColorButton color="pink" onClick={() => handleHighlight('pink')} />
+          <HighlightColorButton color="blue" onClick={() => handleHighlight('blue')} />
+          <HighlightColorButton color="green" onClick={() => handleHighlight('green')} />
+          <div className="w-px h-5 bg-border mx-1"></div>
           <button
             onClick={handleCopySelection}
             disabled={selectionToolbar.isCopied}
-            className="px-4 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors rounded-lg flex items-center gap-2"
+            className="p-1.5 text-foreground hover:bg-accent transition-colors rounded-full flex items-center"
+            aria-label="Copiar con cita"
           >
             {selectionToolbar.isCopied ? (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                ¡Copiado!
-              </>
             ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                Copiar
-              </>
             )}
           </button>
         </div>
@@ -373,11 +462,7 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
       {tooltip && tooltip.visible && (
         <div
           className="fixed z-50 p-2 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg w-[350px] text-sm font-sans max-h-[60vh] overflow-y-auto"
-          style={{ 
-            top: `${tooltip.top}px`, 
-            left: `${tooltip.left}px`,
-            transform: 'translateX(-50%)',
-          }}
+          style={{ top: `${tooltip.top}px`, left: `${tooltip.left}px`, transform: 'translateX(-50%)' }}
           onMouseEnter={handleMouseEnterTooltip}
           onMouseLeave={handleMouseLeaveProof}
         >
@@ -399,7 +484,6 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
                        </svg>
                     )}
                   </button>
-                  
                   <div className={`transition-all duration-300 ease-in-out grid ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                     <div className="overflow-hidden">
                       <div className="p-3 pt-1">
@@ -450,8 +534,10 @@ const ConfessionViewer: React.FC<ConfessionViewerProps> = ({ chapter, onShowProo
             chapterNumber={chapter.chapter}
             chapterTitle={chapter.title}
             bookmarks={bookmarks}
+            highlights={highlights}
             onToggleBookmark={onToggleBookmark}
             onOpenNoteEditor={onOpenNoteEditor}
+            onDeleteHighlight={onDeleteHighlight}
           />
         ))}
       </div>

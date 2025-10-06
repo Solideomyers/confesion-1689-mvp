@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import type { ScriptureProof, Chapter, Bookmark, ReadingSettings } from './types';
+import type { ScriptureProof, Chapter, Bookmark, ReadingSettings, Highlight } from './types';
 import { confessionData } from './data/confesion';
 import Header from './components/Header';
 import ConfessionViewer from './components/ConfessionViewer';
@@ -33,6 +33,7 @@ export default function App() {
   const [isChapterNavOpen, setIsChapterNavOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [isBookmarkListOpen, setIsBookmarkListOpen] = useState(false);
   const [scrollToParagraphId, setScrollToParagraphId] = useState<string | null>(null);
   const [activeBookmarkId, setActiveBookmarkId] = useState<string | null>(null);
@@ -103,12 +104,14 @@ export default function App() {
   
   const handleDeleteAllData = useCallback(() => {
     localStorage.removeItem('confession_bookmarks');
+    localStorage.removeItem('confession_highlights');
     localStorage.removeItem('confession_theme');
     localStorage.removeItem('confession_reading_settings');
     confessionData.forEach((_, index) => {
         localStorage.removeItem(`scroll_ch_${index}`);
     });
     setBookmarks([]);
+    setHighlights([]);
     const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme';
     setTheme(defaultTheme);
     document.documentElement.className = defaultTheme;
@@ -130,9 +133,14 @@ export default function App() {
       if (savedBookmarks) {
         setBookmarks(JSON.parse(savedBookmarks));
       }
+      const savedHighlights = localStorage.getItem('confession_highlights');
+      if (savedHighlights) {
+        setHighlights(JSON.parse(savedHighlights));
+      }
     } catch (error) {
-      console.error("Failed to parse bookmarks from localStorage", error);
+      console.error("Failed to parse data from localStorage", error);
       setBookmarks([]);
+      setHighlights([]);
     }
   }, []);
   
@@ -189,6 +197,22 @@ export default function App() {
 
   const handleCloseNoteEditor = useCallback(() => {
     setEditingBookmark(null);
+  }, []);
+
+  const handleAddHighlight = useCallback((newHighlight: Highlight) => {
+    setHighlights(prev => {
+      const newHighlights = [...prev, newHighlight];
+      localStorage.setItem('confession_highlights', JSON.stringify(newHighlights));
+      return newHighlights;
+    });
+  }, []);
+  
+  const handleDeleteHighlight = useCallback((highlightId: string) => {
+    setHighlights(prev => {
+      const newHighlights = prev.filter(h => h.id !== highlightId);
+      localStorage.setItem('confession_highlights', JSON.stringify(newHighlights));
+      return newHighlights;
+    });
   }, []);
 
 
@@ -395,10 +419,13 @@ export default function App() {
       
       {view === 'dashboard' && (() => {
           const readingProgress = Math.round(((currentChapterIndex + 1) / confessionData.length) * 100);
+          // FIX: Define bookmarkCount before using it in the stats object.
+          const bookmarkCount = bookmarks.length;
           const noteCount = bookmarks.filter(b => b.note && b.note.trim() !== '').length;
-          const stats = { readingProgress, bookmarkCount: bookmarks.length, noteCount };
+          const highlightCount = highlights.length;
+          const stats = { readingProgress, bookmarkCount, noteCount, highlightCount };
           const handleExportData = () => {
-              const dataStr = JSON.stringify({ bookmarks, theme, readingSettings }, null, 2);
+              const dataStr = JSON.stringify({ bookmarks, highlights, theme, readingSettings }, null, 2);
               const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
               const exportFileDefaultName = 'confession_data.json';
               const linkElement = document.createElement('a');
@@ -420,6 +447,9 @@ export default function App() {
                 bookmarks={bookmarks}
                 onToggleBookmark={handleToggleBookmark}
                 onOpenNoteEditor={handleOpenNoteEditor}
+                highlights={highlights}
+                onAddHighlight={handleAddHighlight}
+                onDeleteHighlight={handleDeleteHighlight}
             />
             {isHeaderVisible && (
                 <FooterNav 
