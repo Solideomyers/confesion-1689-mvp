@@ -33,7 +33,7 @@ export default function App() {
   const [theme, setTheme] = useState('dark-matter');
   const [isReadingSettingsOpen, setIsReadingSettingsOpen] = useState(false);
   const [readingSettings, setReadingSettings] = useState<ReadingSettings>({
-    fontSize: 'lg',
+    fontSize: 1.125,
     lineHeight: 'relaxed',
     fontFamily: 'serif',
   });
@@ -52,7 +52,18 @@ export default function App() {
 
     const savedSettings = localStorage.getItem('confession_reading_settings');
     if (savedSettings) {
-        setReadingSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        // Migration logic for old string-based font sizes
+        if (typeof parsed.fontSize === 'string') {
+            const sizeMap: Record<string, number> = { base: 1, lg: 1.125, xl: 1.25, '2xl': 1.5 };
+            parsed.fontSize = sizeMap[parsed.fontSize] || 1.125;
+        }
+        // Ensure fontFamily is valid, default to 'serif' if not
+        const validFonts = ['serif', 'sans', 'baskerville', 'lora'];
+        if (!validFonts.includes(parsed.fontFamily)) {
+            parsed.fontFamily = 'serif';
+        }
+        setReadingSettings(parsed);
     }
   }, []);
 
@@ -98,7 +109,7 @@ export default function App() {
     const defaultTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark-matter' : 'light-theme';
     setTheme(defaultTheme);
     document.documentElement.className = defaultTheme;
-    setReadingSettings({ fontSize: 'lg', lineHeight: 'relaxed', fontFamily: 'serif' });
+    setReadingSettings({ fontSize: 1.125, lineHeight: 'relaxed', fontFamily: 'serif' });
     setView('home');
   }, []);
 
@@ -358,7 +369,7 @@ export default function App() {
   const isFloatingNavVisible = view === 'reader' && (isMobile || isReaderMode);
   const isHeaderVisible = !isFloatingNavVisible;
   
-  const readerClasses = `font-${readingSettings.fontFamily} text-${readingSettings.fontSize} leading-${readingSettings.lineHeight}`;
+  const readerClasses = `font-${readingSettings.fontFamily} leading-${readingSettings.lineHeight}`;
 
 
   return (
@@ -396,7 +407,10 @@ export default function App() {
       })()}
 
       {view === 'reader' && (
-        <main className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'} ${readerClasses}`}>
+        <main 
+            className={`flex-grow px-4 transition-all duration-300 ${isReaderMode ? 'pt-16' : 'pt-24'} ${isFloatingNavVisible ? 'pb-24' : 'pb-16'} ${readerClasses}`}
+            style={{ fontSize: `${readingSettings.fontSize}rem` }}
+        >
             <ConfessionViewer
                 chapter={confessionData[currentChapterIndex]}
                 onShowProof={handleShowProof}

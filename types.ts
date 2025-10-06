@@ -23,7 +23,7 @@ export interface Bookmark {
 }
 
 export interface ReadingSettings {
-  fontSize: 'base' | 'lg' | 'xl' | '2xl';
+  fontSize: number; // in rem
   lineHeight: 'normal' | 'relaxed' | 'loose';
-  fontFamily: 'serif' | 'sans';
+  fontFamily: 'serif' | 'sans' | 'baskerville' | 'lora';
 }

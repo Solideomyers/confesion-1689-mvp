@@ -9,16 +9,8 @@ interface ReadingSettingsPopoverProps {
   triggerRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-type FontSize = ReadingSettings['fontSize'];
 type LineHeight = ReadingSettings['lineHeight'];
 type FontFamily = ReadingSettings['fontFamily'];
-
-const fontSizes: { value: FontSize; label: string }[] = [
-  { value: 'base', label: 'Pequeño' },
-  { value: 'lg', label: 'Normal' },
-  { value: 'xl', label: 'Grande' },
-  { value: '2xl', label: 'Extra' },
-];
 
 const lineHeights: { value: LineHeight; label: string }[] = [
   { value: 'normal', label: 'Compacto' },
@@ -27,8 +19,10 @@ const lineHeights: { value: LineHeight; label: string }[] = [
 ];
 
 const fontFamilies: { value: FontFamily; label: string }[] = [
-  { value: 'serif', label: 'Serif' },
-  { value: 'sans', label: 'Sans' },
+  { value: 'serif', label: 'Merriweather' },
+  { value: 'sans', label: 'Inter' },
+  { value: 'baskerville', label: 'Baskerville' },
+  { value: 'lora', label: 'Lora' },
 ];
 
 const SettingButton = <T extends string>({ value, label, currentValue, onClick }: { value: T, label: string, currentValue: T, onClick: (value: T) => void }) => (
@@ -71,7 +65,7 @@ const ReadingSettingsPopover: React.FC<ReadingSettingsPopoverProps> = ({ isOpen,
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
-      const popoverHeight = 250; 
+      const popoverHeight = 280; // Adjusted height for new layout
       
       let top = triggerRect.bottom + 8;
       if (triggerRect.top > window.innerHeight / 2) { 
@@ -94,15 +88,23 @@ const ReadingSettingsPopover: React.FC<ReadingSettingsPopoverProps> = ({ isOpen,
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-muted-foreground mb-2">Tamaño de Fuente</label>
-          <div className="grid grid-cols-2 gap-2">
-            {fontSizes.map(fs => (
-              <SettingButton key={fs.value} {...fs} currentValue={settings.fontSize} onClick={(v) => onSettingChange('fontSize', v)} />
-            ))}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold">A</span>
+            <input
+              type="range"
+              min="0.875"
+              max="1.75"
+              step="0.025"
+              value={settings.fontSize}
+              onChange={(e) => onSettingChange('fontSize', parseFloat(e.target.value))}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <span className="text-lg font-semibold">A</span>
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-muted-foreground mb-2">Interlineado</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex items-center justify-between gap-2">
              {lineHeights.map(lh => (
               <SettingButton key={lh.value} {...lh} currentValue={settings.lineHeight} onClick={(v) => onSettingChange('lineHeight', v)} />
             ))}
