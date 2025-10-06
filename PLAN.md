@@ -6,7 +6,7 @@ Este documento describe el plan para evolucionar la aplicación de un lector dig
 
 El objetivo es minimizar la fricción y mantener al usuario inmerso en su estudio.
 
-- [ ] **Panel de Escrituras Inteligente:** Al hacer clic en una prueba, el panel lateral se abrirá y mostrará el texto completo de *todos* los versículos referenciados en ese párrafo, convirtiéndolo en una herramienta de estudio activa.
+- [x] **Panel de Escrituras Inteligente:** Al hacer clic en una prueba, el panel lateral se abrirá y mostrará el texto completo de *todos* los versículos referenciados en ese párrafo, convirtiéndolo en una herramienta de estudio activa.
 - [ ] **Personalización de Lectura:** Añadir un panel de configuración de lectura accesible que permita:
     - [ ] Ajustar el tamaño de la fuente.
     - [ ] Cambiar el interlineado.

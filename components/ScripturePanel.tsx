@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import type { ScriptureProof } from '../types';
 
 interface ScripturePanelProps {
@@ -9,7 +8,24 @@ interface ScripturePanelProps {
 }
 
 const ScripturePanel: React.FC<ScripturePanelProps> = ({ isOpen, proof, onClose }) => {
+  const [isCopied, setIsCopied] = useState(false);
+
   if (!proof) return null;
+
+  const handleCopy = () => {
+    if (!proof) return;
+
+    const textToCopy = `Textos de Prueba (${proof.ref.toUpperCase()})\n\n` +
+      proof.verses.map((verse, index) => {
+        const text = proof.fullText?.[index] ?? 'Texto no disponible.';
+        return `${verse}\n"${text}"`;
+      }).join('\n\n');
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    });
+  };
 
   return (
     <>
@@ -23,23 +39,49 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ isOpen, proof, onClose 
         <div className="p-6 h-full flex flex-col">
           <header className="flex items-center justify-between pb-4 border-b border-border">
             <h3 className="text-xl font-bold text-primary font-serif">
-              Prueba Escritural <span className="text-foreground">{proof.ref.toUpperCase()}</span>
+              Textos de Prueba <span className="text-foreground">{proof.ref.toUpperCase()}</span>
             </h3>
-            <button
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Cerrar panel de escrituras"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleCopy}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent"
+                aria-label="Copiar textos de prueba"
+              >
+                {isCopied ? (
+                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent"
+                aria-label="Cerrar panel de escrituras"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </header>
-          <div className="py-4 flex-grow overflow-y-auto">
-            <ul className="space-y-3">
+          <div className="py-4 flex-grow overflow-y-auto custom-scrollbar -mr-3 pr-3">
+            <ul className="space-y-6">
               {proof.verses.map((verse, index) => (
-                <li key={index} className="text-muted-foreground font-serif text-lg">
-                  {verse}
+                <li key={index}>
+                  <p className="font-bold text-foreground text-base mb-2">{verse}</p>
+                  {proof.fullText && proof.fullText[index] ? (
+                    <blockquote className="border-l-4 border-primary/50 pl-4 italic text-muted-foreground font-serif text-base leading-relaxed">
+                      {proof.fullText[index]}
+                    </blockquote>
+                  ) : (
+                    <p className="pl-4 text-sm text-muted-foreground/70 italic">
+                      Texto completo no disponible.
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
