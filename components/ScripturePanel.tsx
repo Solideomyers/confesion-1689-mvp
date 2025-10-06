@@ -8,11 +8,12 @@ interface ScripturePanelProps {
 }
 
 const ScripturePanel: React.FC<ScripturePanelProps> = ({ isOpen, proof, onClose }) => {
-  const [isCopied, setIsCopied] = useState(false);
+  const [isAllCopied, setIsAllCopied] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   if (!proof) return null;
 
-  const handleCopy = () => {
+  const handleCopyAll = () => {
     if (!proof) return;
 
     const textToCopy = `Textos de Prueba (${proof.ref.toUpperCase()})\n\n` +
@@ -22,8 +23,17 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ isOpen, proof, onClose 
       }).join('\n\n');
     
     navigator.clipboard.writeText(textToCopy).then(() => {
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
+        setIsAllCopied(true);
+        setTimeout(() => setIsAllCopied(false), 2000);
+    });
+  };
+
+  const handleCopyIndividual = (verse: string, text: string | undefined, index: number) => {
+    if (!text) return;
+    const textToCopy = `"${text}" (${verse})`;
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
     });
   };
 
@@ -43,11 +53,11 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ isOpen, proof, onClose 
             </h3>
             <div className="flex items-center space-x-2">
               <button
-                onClick={handleCopy}
+                onClick={handleCopyAll}
                 className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent"
-                aria-label="Copiar textos de prueba"
+                aria-label="Copiar todos los textos de prueba"
               >
-                {isCopied ? (
+                {isAllCopied ? (
                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
@@ -70,20 +80,40 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ isOpen, proof, onClose 
           </header>
           <div className="py-4 flex-grow overflow-y-auto custom-scrollbar -mr-3 pr-3">
             <ul className="space-y-6">
-              {proof.verses.map((verse, index) => (
-                <li key={index}>
-                  <p className="font-bold text-foreground text-base mb-2">{verse}</p>
-                  {proof.fullText && proof.fullText[index] ? (
-                    <blockquote className="border-l-4 border-primary/50 pl-4 italic text-muted-foreground font-serif text-base leading-relaxed">
-                      {proof.fullText[index]}
-                    </blockquote>
-                  ) : (
-                    <p className="pl-4 text-sm text-muted-foreground/70 italic">
-                      Texto completo no disponible.
-                    </p>
-                  )}
-                </li>
-              ))}
+              {proof.verses.map((verse, index) => {
+                const fullText = proof.fullText?.[index];
+                return (
+                    <li key={index} className="relative group">
+                      <p className="font-bold text-foreground text-base mb-2">{verse}</p>
+                      {fullText ? (
+                          <blockquote className="border-l-4 border-primary/50 pl-4 italic text-muted-foreground font-serif text-base leading-relaxed pr-8">
+                          {fullText}
+                          </blockquote>
+                      ) : (
+                          <p className="pl-4 text-sm text-muted-foreground/70 italic">
+                          Texto completo no disponible.
+                          </p>
+                      )}
+                      {fullText && (
+                          <button
+                              onClick={() => handleCopyIndividual(verse, fullText, index)}
+                              className="absolute top-0 right-0 p-1.5 text-muted-foreground hover:text-foreground transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100 rounded-lg hover:bg-accent"
+                              aria-label={`Copiar ${verse}`}
+                          >
+                              {copiedIndex === index ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                              ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                              )}
+                          </button>
+                      )}
+                    </li>
+                );
+              })}
             </ul>
           </div>
         </div>
