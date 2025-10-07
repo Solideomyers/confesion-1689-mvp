@@ -165,7 +165,7 @@ export default function App() {
       const isBookmarked = prevBookmarks.some(b => b.id === paragraphId);
       const newBookmarks = isBookmarked
         ? prevBookmarks.filter(b => b.id !== paragraphId)
-        : [...prevBookmarks, { id: paragraphId }];
+        : [...prevBookmarks, { id: paragraphId, tags: [] }];
       
       localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
       return newBookmarks;
@@ -180,10 +180,10 @@ export default function App() {
     });
   }, []);
 
-  const handleUpdateBookmark = useCallback((bookmarkId: string, note: string) => {
+  const handleUpdateBookmark = useCallback((bookmarkId: string, updates: Partial<Pick<Bookmark, 'note' | 'tags'>>) => {
     setBookmarks(prevBookmarks => {
       const newBookmarks = prevBookmarks.map(b => 
-        b.id === bookmarkId ? { ...b, note } : b
+        b.id === bookmarkId ? { ...b, ...updates } : b
       );
       localStorage.setItem('confession_bookmarks', JSON.stringify(newBookmarks));
       return newBookmarks;
@@ -437,7 +437,9 @@ export default function App() {
           const bookmarkCount = bookmarks.length;
           const noteCount = bookmarks.filter(b => b.note && b.note.trim() !== '').length;
           const highlightCount = highlights.length;
-          const stats = { readingProgress, bookmarkCount, noteCount, highlightCount };
+          const tagCount = new Set(bookmarks.flatMap(b => b.tags || [])).size;
+          const stats = { readingProgress, bookmarkCount, noteCount, highlightCount, tagCount };
+
           const handleExportData = () => {
               const dataStr = JSON.stringify({ bookmarks, highlights, theme, readingSettings }, null, 2);
               const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);

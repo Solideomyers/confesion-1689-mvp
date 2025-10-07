@@ -20,6 +20,7 @@ export interface Chapter {
 export interface Bookmark {
   id: string; // e.g., "confession-ch1-p2"
   note?: string;
+  tags?: string[];
 }
 
 export interface Highlight {

@@ -1,16 +1,19 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Bookmark, Chapter } from '../types';
+import TagInput from './TagInput';
 
 interface NoteEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (bookmarkId: string, note: string) => void;
+  onSave: (bookmarkId: string, updates: Partial<Pick<Bookmark, 'note' | 'tags'>>) => void;
   bookmark: Bookmark | null;
   confessionData: Chapter[];
 }
 
 const NoteEditorModal: React.FC<NoteEditorModalProps> = ({ isOpen, onClose, onSave, bookmark, confessionData }) => {
   const [noteText, setNoteText] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
 
   const details = useMemo(() => {
     if (!bookmark) return null;
@@ -37,12 +40,13 @@ const NoteEditorModal: React.FC<NoteEditorModalProps> = ({ isOpen, onClose, onSa
   useEffect(() => {
     if (bookmark) {
       setNoteText(bookmark.note || '');
+      setTags(bookmark.tags || []);
     }
   }, [bookmark]);
 
   const handleSave = () => {
     if (bookmark) {
-      onSave(bookmark.id, noteText);
+      onSave(bookmark.id, { note: noteText, tags });
       onClose();
     }
   };
@@ -75,6 +79,10 @@ const NoteEditorModal: React.FC<NoteEditorModalProps> = ({ isOpen, onClose, onSa
               aria-label="Área de edición de nota"
               autoFocus
             />
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-muted-foreground mb-2">Etiquetas</label>
+              <TagInput tags={tags} onChange={setTags} />
+            </div>
         </div>
 
         <footer className="flex justify-end space-x-3 p-4 border-t border-border flex-shrink-0">
