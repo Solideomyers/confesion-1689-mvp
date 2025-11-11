@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Confesión Bautista de Fe de 1689 — Next.js Monolito (Base)
 
-# Run and deploy your AI Studio app
+Este PR migra la base a Next.js (App Router) con TypeScript estricto, Biome y CI básico.
 
-This contains everything you need to run your app locally.
+## Requisitos
+- Node.js 20+
+- npm 10+
 
-View your app in AI Studio: https://ai.studio/apps/drive/1C4h3LuIy6WTH5cXXWNCWL2tp_-A00NCX
+## Scripts
+- `npm run dev`: Inicia el servidor de desarrollo (http://localhost:3000)
+- `npm run build`: Compila para producción
+- `npm start`: Sirve la build de producción
+- `npm run typecheck`: TypeScript estricto sin emitir
+- `npm run lint`: Linter/formateo con Biome
+- `npm run cli -- validate-content`: Valida el contenido Markdown inicial
 
-## Run Locally
+## Estructura
+- `src/app`: Rutas (App Router)
+- `content/confession/es`: Contenido Markdown (ejemplo)
+- `scripts/confesion-cli.ts`: CLI simple para tareas operativas
+- `prisma/schema.prisma`: Esquema de datos base (futuro)
+- `.github/workflows/ci.yml`: CI de typecheck/lint/build
 
-**Prerequisites:**  Node.js
+## Variables de entorno
+Ver `.env.example` para los placeholders. Aún no son necesarias para ejecutar el entorno local básico.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Próximos pasos
+- Añadir PWA y búsqueda
+- Integrar Auth.js + Prisma
+- Panel de administración básico

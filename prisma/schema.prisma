@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(READER)
+  bookmarks Bookmark[]
+  notes     Note[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  READER
+  EDITOR
+  ADMIN
+}
+
+model Confession {
+  id        String    @id @default(cuid())
+  title     String
+  slug      String    @unique
+  lang      String    @default("es")
+  chapters  Chapter[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Chapter {
+  id           String     @id @default(cuid())
+  confession   Confession @relation(fields: [confessionId], references: [id])
+  confessionId String
+  number       Int
+  title        String
+  slug         String
+  articles     Article[]
+  @@unique([confessionId, number])
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  chapter   Chapter  @relation(fields: [chapterId], references: [id])
+  chapterId String
+  number    Int
+  content   String   // Markdown/MDX
+  footnotes Footnote[]
+  tags      ArticleTag[]
+  @@unique([chapterId, number])
+}
+
+model Footnote {
+  id        String  @id @default(cuid())
+  article   Article @relation(fields: [articleId], references: [id])
+  articleId String
+  marker    String
+  text      String
+}
+
+model Tag {
+  id    String @id @default(cuid())
+  name  String @unique
+  articles ArticleTag[]
+}
+
+model ArticleTag {
+  article   Article @relation(fields: [articleId], references: [id])
+  articleId String
+  tag       Tag     @relation(fields: [tagId], references: [id])
+  tagId     String
+  @@id([articleId, tagId])
+}
+
+model Bookmark {
+  id        String  @id @default(cuid())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+  article   Article @relation(fields: [articleId], references: [id])
+  articleId String
+  position  String? // serialized selection
+  note      String?
+  createdAt DateTime @default(now())
+  @@unique([userId, articleId, position])
+}
+
+model Note {
+  id        String  @id @default(cuid())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String
+  article   Article @relation(fields: [articleId], references: [id])
+  articleId String
+  selection String? // serialized range
+  content   String
+  createdAt DateTime @default(now())
+}
